@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// @ts-ignore
+import { Feather } from '@expo/vector-icons';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
 import { MarkdownView } from '../../components/MarkdownView';
@@ -73,10 +75,10 @@ export default function ConversationDetailScreen() {
           headerRight: () => (
             <View style={styles.headerButtons}>
               <TouchableOpacity onPress={handleEdit} style={styles.headerButton}>
-                <Text style={{ color: colors.primary, fontSize: 16 }}>編集</Text>
+                <Feather name="edit-2" size={20} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={handleDelete} style={styles.headerButton}>
-                <Text style={{ color: colors.danger, fontSize: 16 }}>削除</Text>
+                <Feather name="trash-2" size={20} color={colors.danger} />
               </TouchableOpacity>
             </View>
           ),
