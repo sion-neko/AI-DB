@@ -108,7 +108,7 @@ export default function ConversationDetailScreen() {
         </ScrollView>
 
         <Modal visible={editModalVisible} animationType="slide">
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalContent}
