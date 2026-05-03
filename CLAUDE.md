@@ -40,7 +40,6 @@ utils/storage.ts        # AsyncStorage操作
 
 ## 起動方法
 ```bash
-cd ai-conversation-saver
 npx expo start
 ```
 Expo GoアプリでQRコードをスキャンして実機確認
