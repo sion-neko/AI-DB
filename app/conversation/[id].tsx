@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  InputAccessoryView,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Feather } from '@expo/vector-icons';
 import { useData } from '../../contexts/DataContext';
@@ -23,25 +25,44 @@ export default function ConversationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { conversations, updateConversation, deleteConversation } = useData();
 
   const conversation = conversations.find((c) => c.id === id);
 
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editQuestion, setEditQuestion] = useState('');
-  const [editAnswer, setEditAnswer] = useState('');
+  const [editingField, setEditingField] = useState<'question' | 'answer' | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
-  const handleEdit = () => {
+  const handleEditField = (field: 'question' | 'answer') => {
     if (!conversation) return;
-    setEditQuestion(conversation.question);
-    setEditAnswer(conversation.answer);
-    setEditModalVisible(true);
+    setEditValue(field === 'question' ? conversation.question : conversation.answer);
+    setIsTyping(false);
+    setEditingField(field);
+  };
+
+  const handleCloseModal = () => {
+    setIsTyping(false);
+    setEditingField(null);
+  };
+
+  const handleTapText = () => {
+    setIsTyping(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleDone = () => {
+    Keyboard.dismiss();
+    setIsTyping(false);
   };
 
   const handleSaveEdit = async () => {
-    if (!conversation || !editQuestion.trim() || !editAnswer.trim()) return;
-    await updateConversation(conversation.id, editQuestion.trim(), editAnswer.trim());
-    setEditModalVisible(false);
+    if (!conversation || !editValue.trim() || !editingField) return;
+    const newQuestion = editingField === 'question' ? editValue.trim() : conversation.question;
+    const newAnswer = editingField === 'answer' ? editValue.trim() : conversation.answer;
+    await updateConversation(conversation.id, newQuestion, newAnswer);
+    setEditingField(null);
   };
 
   const handleDelete = () => {
@@ -73,14 +94,9 @@ export default function ConversationDetailScreen() {
         options={{
           title: '会話詳細',
           headerRight: () => (
-            <View style={styles.headerButtons}>
-              <TouchableOpacity onPress={handleEdit} style={styles.headerButton}>
-                <Feather name="edit-2" size={20} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} style={styles.headerButton}>
-                <Feather name="trash-2" size={20} color={colors.danger} />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={handleDelete} style={styles.headerButton}>
+              <Feather name="trash-2" size={20} color={colors.danger} />
+            </TouchableOpacity>
           ),
         }}
       />
@@ -89,6 +105,9 @@ export default function ConversationDetailScreen() {
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <View style={[styles.labelContainer, { backgroundColor: colors.primary }]}>
               <Text style={styles.label}>質問</Text>
+              <TouchableOpacity onPress={() => handleEditField('question')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="edit-2" size={14} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
             <View style={styles.textContainer}>
               <Text style={[styles.questionText, { color: colors.text }]}>
@@ -100,6 +119,9 @@ export default function ConversationDetailScreen() {
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <View style={[styles.labelContainer, { backgroundColor: colors.success }]}>
               <Text style={styles.label}>回答</Text>
+              <TouchableOpacity onPress={() => handleEditField('answer')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="edit-2" size={14} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
             <View style={styles.markdownContainer}>
               <MarkdownView content={conversation.answer} />
@@ -107,27 +129,26 @@ export default function ConversationDetailScreen() {
           </View>
         </ScrollView>
 
-        <Modal visible={editModalVisible} animationType="slide">
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <Modal visible={editingField !== null} animationType="slide">
+          <View style={[styles.modalContainer, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalContent}
             >
               <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <TouchableOpacity onPress={handleCloseModal}>
                   <Text style={{ color: colors.primary, fontSize: 16 }}>キャンセル</Text>
                 </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>編集</Text>
-                <TouchableOpacity
-                  onPress={handleSaveEdit}
-                  disabled={!editQuestion.trim() || !editAnswer.trim()}
-                >
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  {editingField === 'question' ? '質問を編集' : '回答を編集'}
+                </Text>
+                <TouchableOpacity onPress={handleSaveEdit} disabled={!editValue.trim()}>
                   <Text
                     style={{
                       color: colors.primary,
                       fontSize: 16,
                       fontWeight: '600',
-                      opacity: editQuestion.trim() && editAnswer.trim() ? 1 : 0.5,
+                      opacity: editValue.trim() ? 1 : 0.5,
                     }}
                   >
                     保存
@@ -135,46 +156,40 @@ export default function ConversationDetailScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={styles.modalForm}>
-                <Text style={[styles.inputLabel, { color: colors.text }]}>質問</Text>
+              {isTyping ? (
                 <TextInput
-                  style={[
-                    styles.textArea,
-                    {
-                      backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7',
-                      color: colors.text,
-                    },
-                  ]}
-                  value={editQuestion}
-                  onChangeText={setEditQuestion}
-                  placeholder="質問を入力"
+                  ref={inputRef}
+                  style={[styles.editInput, { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7', color: colors.text }]}
+                  value={editValue}
+                  onChangeText={setEditValue}
+                  placeholder={editingField === 'question' ? '質問を入力' : 'AIの回答を貼り付け'}
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   textAlignVertical="top"
+                  inputAccessoryViewID="editAccessory"
                 />
-
-                <Text style={[styles.inputLabel, { color: colors.text }]}>回答</Text>
-                <TextInput
-                  style={[
-                    styles.textArea,
-                    styles.answerInput,
-                    {
-                      backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7',
-                      color: colors.text,
-                    },
-                  ]}
-                  value={editAnswer}
-                  onChangeText={setEditAnswer}
-                  placeholder="AIの回答を貼り付け"
-                  placeholderTextColor={colors.textSecondary}
-                  multiline
-                  textAlignVertical="top"
-                />
-              </ScrollView>
+              ) : (
+                <ScrollView style={styles.editInput} contentContainerStyle={{ padding: 0 }}>
+                  <TouchableOpacity onPress={handleTapText} activeOpacity={1}>
+                    <Text style={{ color: editValue ? colors.text : colors.textSecondary, fontSize: 16, lineHeight: 24 }}>
+                      {editValue || (editingField === 'question' ? '質問を入力' : 'AIの回答を貼り付け')}
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              )}
             </KeyboardAvoidingView>
-          </SafeAreaView>
+          </View>
         </Modal>
       </SafeAreaView>
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID="editAccessory">
+          <View style={[styles.accessoryBar, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7', borderTopColor: colors.border }]}>
+            <TouchableOpacity onPress={handleDone} style={styles.accessoryButton}>
+              <Text style={{ color: colors.primary, fontSize: 16 }}>完了</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </>
   );
 }
@@ -192,6 +207,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   labelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
   },
@@ -254,5 +272,23 @@ const styles = StyleSheet.create({
   },
   answerInput: {
     minHeight: 200,
+  },
+  editInput: {
+    flex: 1,
+    margin: 16,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    textAlignVertical: 'top',
+  },
+  accessoryBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+  },
+  accessoryButton: {
+    paddingHorizontal: 8,
   },
 });
