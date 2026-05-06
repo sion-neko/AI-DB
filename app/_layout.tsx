@@ -19,7 +19,7 @@ function RootLayoutNav() {
       >
         <Stack.Screen
           name="index"
-          options={{ title: 'あいろく' }}
+          options={{ title: 'あいろく ~ AI会話記録 ~' }}
         />
         <Stack.Screen
           name="folder/[id]"
