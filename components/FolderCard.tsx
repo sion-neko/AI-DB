@@ -3,6 +3,17 @@ import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Folder } from '../types';
 
+const FOLDER_COLORS = [
+  '#007AFF', '#34C759', '#FF9500', '#AF52DE',
+  '#FF3B30', '#5AC8FA', '#FF2D55', '#5856D6',
+  '#00C7BE', '#FFCC00',
+];
+
+const getFolderColor = (id: string): string => {
+  const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return FOLDER_COLORS[hash % FOLDER_COLORS.length];
+};
+
 interface FolderCardProps {
   folder: Folder;
   conversationCount: number;
@@ -17,6 +28,7 @@ export const FolderCard: React.FC<FolderCardProps> = ({
   onLongPress,
 }) => {
   const { colors } = useTheme();
+  const folderColor = getFolderColor(folder.id);
 
   return (
     <TouchableOpacity
@@ -25,9 +37,7 @@ export const FolderCard: React.FC<FolderCardProps> = ({
       onLongPress={onLongPress}
       activeOpacity={0.7}
     >
-      <View style={styles.iconContainer}>
-        <Text style={styles.icon}>📁</Text>
-      </View>
+      <View style={[styles.colorBar, { backgroundColor: folderColor }]} />
       <View style={styles.content}>
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {folder.name}
@@ -45,25 +55,18 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
     marginHorizontal: 16,
     marginVertical: 4,
     borderRadius: 12,
+    overflow: 'hidden',
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#007AFF20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  icon: {
-    fontSize: 24,
+  colorBar: {
+    width: 4,
+    alignSelf: 'stretch',
   },
   content: {
     flex: 1,
+    padding: 16,
   },
   name: {
     fontSize: 17,
@@ -76,5 +79,7 @@ const styles = StyleSheet.create({
   arrow: {
     fontSize: 24,
     fontWeight: '300',
+    paddingRight: 16,
   },
 });
+
