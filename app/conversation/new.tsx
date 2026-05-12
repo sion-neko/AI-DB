@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  View,
   Text,
   ScrollView,
   TouchableOpacity,
@@ -19,20 +18,12 @@ export default function NewConversationScreen() {
   const { folderId } = useLocalSearchParams<{ folderId: string }>();
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const { folders, addConversation } = useData();
+  const { addConversation } = useData();
 
-  const [selectedFolderId, setSelectedFolderId] = useState(folderId || '');
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
-  const [showFolderPicker, setShowFolderPicker] = useState(false);
-
-  const selectedFolder = folders.find((f) => f.id === selectedFolderId);
 
   const handleSave = async () => {
-    if (!selectedFolderId) {
-      Alert.alert('エラー', 'フォルダを選択してください');
-      return;
-    }
     if (!question.trim()) {
       Alert.alert('エラー', '質問を入力してください');
       return;
@@ -42,11 +33,11 @@ export default function NewConversationScreen() {
       return;
     }
 
-    await addConversation(selectedFolderId, question.trim(), answer.trim());
+    await addConversation(folderId, question.trim(), answer.trim());
     router.back();
   };
 
-  const canSave = selectedFolderId && question.trim() && answer.trim();
+  const canSave = question.trim() && answer.trim();
 
   return (
     <>
@@ -80,48 +71,6 @@ export default function NewConversationScreen() {
           style={styles.content}
         >
           <ScrollView style={styles.form}>
-            <Text style={[styles.label, { color: colors.text }]}>フォルダ</Text>
-            <TouchableOpacity
-              style={[styles.folderSelector, { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7' }]}
-              onPress={() => setShowFolderPicker(!showFolderPicker)}
-            >
-              <Text style={{ color: selectedFolder ? colors.text : colors.textSecondary, fontSize: 16 }}>
-                {selectedFolder ? selectedFolder.name : 'フォルダを選択'}
-              </Text>
-              <Text style={{ color: colors.textSecondary }}>▼</Text>
-            </TouchableOpacity>
-
-            {showFolderPicker && (
-              <View style={[styles.folderList, { backgroundColor: colors.surface }]}>
-                {folders.map((folder) => (
-                  <TouchableOpacity
-                    key={folder.id}
-                    style={[
-                      styles.folderOption,
-                      { borderBottomColor: colors.border },
-                      selectedFolderId === folder.id && { backgroundColor: colors.primary + '20' },
-                    ]}
-                    onPress={() => {
-                      setSelectedFolderId(folder.id);
-                      setShowFolderPicker(false);
-                    }}
-                  >
-                    <Text style={{ color: colors.text, fontSize: 16 }}>{folder.name}</Text>
-                    {selectedFolderId === folder.id && (
-                      <Text style={{ color: colors.primary }}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-                {folders.length === 0 && (
-                  <View style={styles.noFolders}>
-                    <Text style={{ color: colors.textSecondary }}>
-                      フォルダがありません。先にフォルダを作成してください。
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
             <Text style={[styles.label, { color: colors.text }]}>質問</Text>
             <TextInput
               style={[
@@ -173,29 +122,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
     marginTop: 16,
-  },
-  folderSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-  },
-  folderList: {
-    marginTop: 8,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  folderOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-  },
-  noFolders: {
-    padding: 16,
-    alignItems: 'center',
   },
   textArea: {
     borderRadius: 10,
