@@ -2,7 +2,7 @@
   "expo": {
     "name": "あいろく ~ AI会話記録 ~",
     "slug": "ai-conversation-saver",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -16,7 +16,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.aiconversationsaver",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDevelopmentRegion": "ja",
+        "CFBundleLocalizations": ["ja"]
       }
     },
     "scheme": "ai-conversation-saver",
