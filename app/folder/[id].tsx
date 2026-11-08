@@ -78,7 +78,7 @@ export default function FolderScreen() {
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => router.push({ pathname: '/conversation/new', params: { folderId: id } })}
         >
-          <Text style={styles.fabIcon}>＋</Text>
+          <Text style={[styles.fabIcon, { color: colors.onPrimary }]}>＋</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </>

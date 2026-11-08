@@ -12,9 +12,11 @@ export const useTheme = () => {
       text: isDark ? '#FFFFFF' : '#000000',
       textSecondary: isDark ? '#8E8E93' : '#6C6C70',
       border: isDark ? '#38383A' : '#C6C6C8',
-      primary: '#007AFF',
+      primary: isDark ? '#8AE3B9' : '#197A57',
+      onPrimary: isDark ? '#0B2B20' : '#FFFFFF',
+      accent: '#FFD45E',
+      onAccent: '#24243F',
       danger: '#FF3B30',
-      success: '#34C759',
     },
   };
 };

@@ -4,8 +4,8 @@ import { useTheme } from '../hooks/useTheme';
 import { Folder } from '../types';
 
 const FOLDER_COLORS = [
-  '#007AFF', '#34C759', '#FF9500', '#AF52DE',
-  '#FF3B30', '#5AC8FA', '#FF2D55', '#5856D6',
+  '#197A57', '#34C759', '#FF9500', '#F59AA8',
+  '#FF3B30', '#8AE3B9', '#FF2D55', '#6B6B8F',
   '#00C7BE', '#FFCC00',
 ];
 

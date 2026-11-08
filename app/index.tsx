@@ -137,7 +137,7 @@ export default function HomeScreen() {
         style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={handleAddFolder}
       >
-        <Text style={styles.fabIcon}>＋</Text>
+        <Text style={[styles.fabIcon, { color: colors.onPrimary }]}>＋</Text>
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="fade">
@@ -182,7 +182,7 @@ export default function HomeScreen() {
                 onPress={handleSaveFolder}
                 disabled={!folderName.trim()}
               >
-                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>
+                <Text style={[styles.modalButtonText, { color: colors.onPrimary }]}>
                   {editingFolder ? '保存' : '作成'}
                 </Text>
               </TouchableOpacity>

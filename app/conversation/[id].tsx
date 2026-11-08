@@ -104,9 +104,9 @@ export default function ConversationDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <View style={[styles.labelContainer, { backgroundColor: colors.primary }]}>
-              <Text style={styles.label}>質問</Text>
+              <Text style={[styles.label, { color: colors.onPrimary }]}>質問</Text>
               <TouchableOpacity onPress={() => handleEditField('question')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="edit-2" size={14} color="#FFFFFF" />
+                <Feather name="edit-2" size={14} color={colors.onPrimary} />
               </TouchableOpacity>
             </View>
             <View style={styles.textContainer}>
@@ -117,10 +117,10 @@ export default function ConversationDetailScreen() {
           </View>
 
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <View style={[styles.labelContainer, { backgroundColor: colors.success }]}>
-              <Text style={styles.label}>回答</Text>
+            <View style={[styles.labelContainer, { backgroundColor: colors.accent }]}>
+              <Text style={[styles.label, { color: colors.onAccent }]}>回答</Text>
               <TouchableOpacity onPress={() => handleEditField('answer')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="edit-2" size={14} color="#FFFFFF" />
+                <Feather name="edit-2" size={14} color={colors.onAccent} />
               </TouchableOpacity>
             </View>
             <View style={styles.markdownContainer}>
