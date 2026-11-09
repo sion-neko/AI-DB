@@ -19,9 +19,9 @@ export default function SearchScreen() {
 
   const getFolderName = (folderId: string) => folders.find((f) => f.id === folderId)?.name;
 
-  const handleDeleteConversation = (conversation: Conversation) => {
-    Alert.alert('会話を削除', 'この会話を削除しますか？', [
-      { text: 'キャンセル', style: 'cancel' },
+  const handleDeleteConversation = (conversation: Conversation, close: () => void) => {
+    Alert.alert('この回答を削除しますか？', '', [
+      { text: 'キャンセル', style: 'cancel', onPress: close },
       {
         text: '削除',
         style: 'destructive',
@@ -61,7 +61,7 @@ export default function SearchScreen() {
               isFirst={index === 0}
               isLast={index === results.length - 1}
               onPress={() => router.push(`/conversation/${item.id}`)}
-              onLongPress={() => handleDeleteConversation(item)}
+              onDelete={(close) => handleDeleteConversation(item, close)}
             />
           )}
           contentContainerStyle={styles.list}

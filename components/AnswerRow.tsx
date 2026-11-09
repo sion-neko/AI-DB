@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import { SwipeToDelete } from './SwipeToDelete';
 import { Conversation } from '../types';
 
 interface AnswerRowProps {
@@ -9,7 +10,7 @@ interface AnswerRowProps {
   isFirst: boolean;
   isLast: boolean;
   onPress: () => void;
-  onLongPress: () => void;
+  onDelete: (close: () => void) => void;
 }
 
 const formatDate = (timestamp: number): string => {
@@ -23,47 +24,40 @@ export const AnswerRow: React.FC<AnswerRowProps> = ({
   isFirst,
   isLast,
   onPress,
-  onLongPress,
+  onDelete,
 }) => {
   const { colors } = useTheme();
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.row,
-        { backgroundColor: colors.surface },
-        isFirst && styles.first,
-        isLast && styles.last,
-      ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      activeOpacity={0.6}
-    >
-      {!isFirst && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
-      <View style={styles.text}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {conversation.question}
-        </Text>
-        {folderName ? (
-          <Text style={[styles.folder, { color: colors.textSecondary }]} numberOfLines={1}>
-            {folderName}
-          </Text>
-        ) : null}
-      </View>
-      <Text style={[styles.date, { color: colors.textSecondary }]}>{formatDate(conversation.updatedAt)}</Text>
-    </TouchableOpacity>
+    <View style={[styles.clip, isFirst && styles.first, isLast && styles.last]}>
+      <SwipeToDelete onDelete={onDelete}>
+        <TouchableOpacity
+          style={[styles.row, { backgroundColor: colors.surface }]}
+          onPress={onPress}
+          activeOpacity={0.6}
+        >
+          {!isFirst && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
+          <View style={styles.text}>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+              {conversation.question || '題なし'}
+            </Text>
+            {folderName ? (
+              <Text style={[styles.folder, { color: colors.textSecondary }]} numberOfLines={1}>
+                {folderName}
+              </Text>
+            ) : null}
+          </View>
+          <Text style={[styles.date, { color: colors.textSecondary }]}>{formatDate(conversation.updatedAt)}</Text>
+        </TouchableOpacity>
+      </SwipeToDelete>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    minHeight: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  clip: {
     marginHorizontal: 16,
+    overflow: 'hidden',
   },
   first: {
     borderTopLeftRadius: 12,
@@ -72,6 +66,14 @@ const styles = StyleSheet.create({
   last: {
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   separator: {
     position: 'absolute',

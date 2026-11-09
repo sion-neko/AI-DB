@@ -35,6 +35,7 @@ export default function ConversationDetailScreen() {
 
   const titleRef = useRef<TextInput>(null);
   const bodyRef = useRef<TextInput>(null);
+  const bodyContentRef = useRef<View>(null);
   const bodyHeight = useRef(1);
   const deleted = useRef(false);
 
@@ -47,7 +48,7 @@ export default function ConversationDetailScreen() {
     if (!current.conversation || deleted.current) return;
     const nextTitle = current.title.trim();
     const nextBody = current.body.trim();
-    if (!nextTitle || !nextBody) return;
+    if (!nextTitle && !nextBody) return;
     if (nextTitle === current.conversation.question && nextBody === current.conversation.answer) return;
     current.updateConversation(current.conversation.id, nextTitle, nextBody);
   };
@@ -56,9 +57,11 @@ export default function ConversationDetailScreen() {
     commit();
     const current = latest.current;
     if (current.conversation) {
-      // 題か本文を空にしたまま閉じたときは元に戻す
-      if (!current.title.trim()) setTitle(current.conversation.question);
-      if (!current.body.trim()) setBody(current.conversation.answer);
+      // 題も本文も空にしたまま閉じたときは元に戻す
+      if (!current.title.trim() && !current.body.trim()) {
+        setTitle(current.conversation.question);
+        setBody(current.conversation.answer);
+      }
     }
     setBodySelection(undefined);
     setEditing(false);
@@ -79,13 +82,6 @@ export default function ConversationDetailScreen() {
     setBody(conversation.answer);
   }, [editing, conversation?.question, conversation?.answer]);
 
-  // スクロールなどでキーボードが閉じたら読む表示に戻る
-  useEffect(() => {
-    if (!editing) return;
-    const subscription = Keyboard.addListener('keyboardDidHide', finishEditing);
-    return () => subscription.remove();
-  }, [editing]);
-
   const startEditing = (field: 'title' | 'body', selection?: { start: number; end: number }) => {
     setBodySelection(selection);
     setEditing(true);
@@ -95,10 +91,13 @@ export default function ConversationDetailScreen() {
     }, 50);
   };
 
-  const handleBodyPress = (locationY: number) => {
-    const ratio = Math.min(Math.max(locationY / bodyHeight.current, 0), 1);
-    const position = Math.round(body.length * ratio);
-    startEditing('body', { start: position, end: position });
+  // 押した文字の位置は分からないので、本文の高さに対する割合からカーソル位置を見積もる
+  const handleBodyPress = (pageY: number) => {
+    bodyContentRef.current?.measureInWindow((_x, top) => {
+      const ratio = Math.min(Math.max((pageY - top) / bodyHeight.current, 0), 1);
+      const position = Math.round(body.length * ratio);
+      startEditing('body', { start: position, end: position });
+    });
   };
 
   const handleDelete = () => {
@@ -142,8 +141,9 @@ export default function ConversationDetailScreen() {
                   finishEditing();
                 }}
                 hitSlop={8}
+                accessibilityLabel="完了"
               >
-                <Text style={[styles.done, { color: colors.primary }]}>完了</Text>
+                <Feather name="check" size={25} color={colors.primary} />
               </TouchableOpacity>
             ) : null,
         }}
@@ -151,7 +151,7 @@ export default function ConversationDetailScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={['bottom']}>
         <ScrollView
           contentContainerStyle={styles.content}
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode="none"
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
         >
@@ -168,20 +168,24 @@ export default function ConversationDetailScreen() {
           ) : (
             <>
               <Pressable onPress={() => startEditing('title')} testID="title">
-                <Text style={[noteStyles.title, { color: colors.text }]}>{conversation.question}</Text>
+                <Text style={[noteStyles.title, { color: conversation.question ? colors.text : colors.textSecondary }]}>
+                  {conversation.question || '題'}
+                </Text>
               </Pressable>
               <Text style={[styles.date, { color: colors.textSecondary }]}>
                 {date.getMonth() + 1}月{date.getDate()}日
               </Text>
               <View style={[noteStyles.rule, { backgroundColor: colors.border }]} />
-              <Pressable
-                onPress={(e) => handleBodyPress(e.nativeEvent.locationY)}
-                onLayout={(e) => {
-                  bodyHeight.current = e.nativeEvent.layout.height || 1;
-                }}
-                testID="body"
-              >
-                <MarkdownView content={conversation.answer} />
+              <Pressable style={styles.bodyArea} onPress={(e) => handleBodyPress(e.nativeEvent.pageY)} testID="body">
+                <View
+                  ref={bodyContentRef}
+                  collapsable={false}
+                  onLayout={(e) => {
+                    bodyHeight.current = e.nativeEvent.layout.height || 1;
+                  }}
+                >
+                  <MarkdownView content={conversation.answer} />
+                </View>
               </Pressable>
             </>
           )}
@@ -210,17 +214,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 40,
   },
+  bodyArea: {
+    flex: 1,
+    minHeight: 240,
+  },
   date: {
     fontSize: 13,
     marginTop: 8,
-  },
-  done: {
-    fontSize: 17,
-    fontWeight: '700',
   },
   toolbar: {
     flexDirection: 'row',

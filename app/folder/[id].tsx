@@ -29,9 +29,9 @@ export default function FolderScreen() {
     router.push({ pathname: '/conversation/new', params: folder ? { folderId: folder.id } : {} });
   };
 
-  const handleLongPress = (conversation: Conversation) => {
+  const handleDeleteAnswer = (conversation: Conversation, close: () => void) => {
     Alert.alert('この回答を削除しますか？', '', [
-      { text: 'キャンセル', style: 'cancel' },
+      { text: 'キャンセル', style: 'cancel', onPress: close },
       { text: '削除', style: 'destructive', onPress: () => deleteConversation(conversation.id) },
     ]);
   };
@@ -73,18 +73,12 @@ export default function FolderScreen() {
       <Stack.Screen
         options={{
           title: isAll ? 'すべての回答' : folder?.name,
-          headerRight: () => (
-            <View style={styles.headerRight}>
-              {folder && (
-                <TouchableOpacity onPress={handleMenu} accessibilityLabel="フォルダの操作" hitSlop={8}>
-                  <Feather name="more-horizontal" size={22} color={colors.primary} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity onPress={handleNew} accessibilityLabel="回答を保存" hitSlop={8}>
-                <Feather name="plus" size={24} color={colors.primary} />
+          headerRight: () =>
+            folder ? (
+              <TouchableOpacity onPress={handleMenu} accessibilityLabel="フォルダの操作" hitSlop={8}>
+                <Feather name="more-horizontal" size={22} color={colors.primary} />
               </TouchableOpacity>
-            </View>
-          ),
+            ) : null,
         }}
       />
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -92,7 +86,7 @@ export default function FolderScreen() {
           <View style={styles.empty}>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>回答がありません</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              右上の＋から、残したいAIの回答を保存できます
+              右下のボタンから、残したいAIの回答を保存できます
             </Text>
           </View>
         ) : (
@@ -106,12 +100,21 @@ export default function FolderScreen() {
                 isFirst={index === 0}
                 isLast={index === list.length - 1}
                 onPress={() => router.push(`/conversation/${item.id}`)}
-                onLongPress={() => handleLongPress(item)}
+                onDelete={(close) => handleDeleteAnswer(item, close)}
               />
             )}
             contentContainerStyle={styles.list}
           />
         )}
+        <View style={[styles.toolbar, { borderTopColor: colors.border }]}>
+          <View style={styles.toolbarSide} />
+          <Text style={[styles.count, { color: colors.textSecondary }]}>{list.length}件の回答</Text>
+          <View style={[styles.toolbarSide, styles.toolbarRight]}>
+            <TouchableOpacity onPress={handleNew} hitSlop={10} accessibilityLabel="回答を保存">
+              <Feather name="edit" size={23} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
       </SafeAreaView>
       {folder && (
         <FolderNameModal
@@ -134,10 +137,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerRight: {
+  toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  toolbarSide: {
+    flex: 1,
+  },
+  toolbarRight: {
+    alignItems: 'flex-end',
+  },
+  count: {
+    fontSize: 13,
   },
   list: {
     paddingTop: 8,

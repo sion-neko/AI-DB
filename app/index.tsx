@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../hooks/useTheme';
 import { FolderNameModal } from '../components/FolderNameModal';
+import { SwipeToDelete } from '../components/SwipeToDelete';
 import { Folder } from '../types';
 
 export default function HomeScreen() {
@@ -34,13 +35,13 @@ export default function HomeScreen() {
     closeModal();
   };
 
-  const handleDelete = (folder: Folder) => {
+  const handleDelete = (folder: Folder, close?: () => void) => {
     const count = countOf(folder.id);
     Alert.alert(
       'フォルダを削除',
       `「${folder.name}」を削除しますか？${count > 0 ? `\n${count}件の回答も削除されます。` : ''}`,
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: 'キャンセル', style: 'cancel', onPress: close },
         { text: '削除', style: 'destructive', onPress: () => deleteFolder(folder.id) },
       ]
     );
@@ -65,7 +66,6 @@ export default function HomeScreen() {
   }
 
   const row = (
-    key: string,
     icon: string,
     name: string,
     count: number,
@@ -73,7 +73,12 @@ export default function HomeScreen() {
     onPress: () => void,
     onLongPress?: () => void
   ) => (
-    <TouchableOpacity key={key} style={styles.row} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.6}>
+    <TouchableOpacity
+      style={[styles.row, { backgroundColor: colors.surface }]}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.6}
+    >
       {!isFirst && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
       <Feather name={icon} size={21} color={colors.primary} />
       <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>
@@ -98,10 +103,12 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <View style={[styles.group, { backgroundColor: colors.surface }]}>
-          {row('all', 'inbox', 'すべての回答', conversations.length, true, () => router.push('/folder/all'))}
-          {sortedFolders.map((f) =>
-            row(f.id, 'folder', f.name, countOf(f.id), false, () => router.push(`/folder/${f.id}`), () => handleMenu(f))
-          )}
+          {row('inbox', 'すべての回答', conversations.length, true, () => router.push('/folder/all'))}
+          {sortedFolders.map((f) => (
+            <SwipeToDelete key={f.id} onDelete={(close) => handleDelete(f, close)}>
+              {row('folder', f.name, countOf(f.id), false, () => router.push(`/folder/${f.id}`), () => handleMenu(f))}
+            </SwipeToDelete>
+          ))}
         </View>
       </ScrollView>
 
@@ -116,6 +123,13 @@ export default function HomeScreen() {
         >
           <Feather name="folder-plus" size={20} color={colors.primary} />
           <Text style={[styles.addFolderText, { color: colors.primary }]}>フォルダを追加</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push('/conversation/new')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel="回答を保存"
+        >
+          <Feather name="edit" size={23} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -183,6 +197,8 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,

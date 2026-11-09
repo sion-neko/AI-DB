@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DataProvider } from '../contexts/DataContext';
 import { useTheme } from '../hooks/useTheme';
 
@@ -26,7 +27,7 @@ function RootLayoutNav() {
         />
         <Stack.Screen
           name="conversation/new"
-          options={{ title: '', gestureEnabled: false, headerStyle: { backgroundColor: colors.surface } }}
+          options={{ title: '', headerStyle: { backgroundColor: colors.surface } }}
         />
         <Stack.Screen name="search" options={{ title: '検索' }} />
       </Stack>
@@ -36,8 +37,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <DataProvider>
-      <RootLayoutNav />
-    </DataProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <DataProvider>
+        <RootLayoutNav />
+      </DataProvider>
+    </GestureHandlerRootView>
   );
 }

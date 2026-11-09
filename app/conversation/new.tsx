@@ -1,7 +1,9 @@
-import React, { useRef, useState } from 'react';
-import { Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ScrollView, TouchableOpacity, StyleSheet, TextInput, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// @ts-ignore
+import { Feather } from '@expo/vector-icons';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
 import { NoteFields } from '../../components/NoteFields';
@@ -16,40 +18,45 @@ export default function NewConversationScreen() {
   const [body, setBody] = useState('');
   const titleRef = useRef<TextInput>(null);
   const bodyRef = useRef<TextInput>(null);
+  const saved = useRef(false);
 
-  const canSave = !!title.trim() && !!body.trim();
+  // 戻るだけでも保存する。何も書いていなければ作らない
+  const latest = useRef({ title, body, addConversation });
+  latest.current = { title, body, addConversation };
 
-  const handleCancel = () => {
-    if (!title.trim() && !body.trim()) {
-      router.back();
-      return;
-    }
-    Alert.alert('入力内容を破棄しますか？', '', [
-      { text: '続ける', style: 'cancel' },
-      { text: '破棄', style: 'destructive', onPress: () => router.back() },
-    ]);
+  const save = async () => {
+    const current = latest.current;
+    const nextTitle = current.title.trim();
+    const nextBody = current.body.trim();
+    if (saved.current || (!nextTitle && !nextBody)) return null;
+    saved.current = true;
+    return current.addConversation(folderId ?? '', nextTitle, nextBody);
   };
 
+  useEffect(
+    () => () => {
+      save();
+    },
+    []
+  );
+
   const handleDone = async () => {
-    if (!canSave) return;
-    const created = await addConversation(folderId ?? '', title.trim(), body.trim());
-    router.replace(`/conversation/${created.id}`);
+    Keyboard.dismiss();
+    const created = await save();
+    if (created) {
+      router.replace(`/conversation/${created.id}`);
+    } else {
+      router.back();
+    }
   };
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerLeft: () => (
-            <TouchableOpacity onPress={handleCancel} hitSlop={8}>
-              <Text style={[styles.navText, { color: colors.primary }]}>キャンセル</Text>
-            </TouchableOpacity>
-          ),
           headerRight: () => (
-            <TouchableOpacity onPress={handleDone} disabled={!canSave} hitSlop={8}>
-              <Text style={[styles.navText, styles.done, { color: colors.primary, opacity: canSave ? 1 : 0.45 }]}>
-                完了
-              </Text>
+            <TouchableOpacity onPress={handleDone} hitSlop={8} accessibilityLabel="完了">
+              <Feather name="check" size={25} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -57,7 +64,7 @@ export default function NewConversationScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={['bottom']}>
         <ScrollView
           contentContainerStyle={styles.content}
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode="none"
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
         >
@@ -84,11 +91,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 40,
-  },
-  navText: {
-    fontSize: 17,
-  },
-  done: {
-    fontWeight: '700',
   },
 });
