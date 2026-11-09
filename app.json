@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/airoku_splash.png",
       "resizeMode": "cover",
-      "backgroundColor": "#8AE3B9"
+      "backgroundColor": "#F79AAE"
     },
     "ios": {
       "supportsTablet": true,
@@ -25,7 +25,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#8AE3B9"
+        "backgroundColor": "#F79AAE"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false

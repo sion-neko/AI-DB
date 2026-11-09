@@ -14,29 +14,21 @@ function RootLayoutNav() {
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.primary,
           headerTitleStyle: { color: colors.text },
+          headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.background },
         }}
       >
-        <Stack.Screen
-          name="index"
-          options={{ title: 'あいろく ~ AI会話記録 ~' }}
-        />
-        <Stack.Screen
-          name="folder/[id]"
-          options={{ title: 'フォルダ' }}
-        />
+        <Stack.Screen name="index" options={{ headerShown: false, title: 'あいろく' }} />
+        <Stack.Screen name="folder/[id]" options={{ title: '' }} />
         <Stack.Screen
           name="conversation/[id]"
-          options={{ title: '会話詳細' }}
+          options={{ title: '', headerStyle: { backgroundColor: colors.surface } }}
         />
         <Stack.Screen
           name="conversation/new"
-          options={{ title: '新規会話', presentation: 'modal' }}
+          options={{ title: '', gestureEnabled: false, headerStyle: { backgroundColor: colors.surface } }}
         />
-        <Stack.Screen
-          name="search"
-          options={{ title: '検索' }}
-        />
+        <Stack.Screen name="search" options={{ title: '検索' }} />
       </Stack>
     </>
   );

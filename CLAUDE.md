@@ -22,10 +22,10 @@ iPhone向けのAI会話保存アプリ。ユーザーがAIへの質問と回答�
 - [x] AsyncStorageによるデータ永続化
 
 ### 画面構成
-1. ホーム（`app/index.tsx`）- フォルダ一覧、検索バー
-2. フォルダ内（`app/folder/[id].tsx`）- 会話一覧
-3. 会話詳細（`app/conversation/[id].tsx`）- Markdown表示、編集/削除
-4. 新規作成（`app/conversation/new.tsx`）- 質問入力、回答ペースト
+1. ホーム（`app/index.tsx`）- フォルダのリスト、検索への入口
+2. フォルダ内（`app/folder/[id].tsx`）- 題と日付の一覧。`all` は全回答
+3. 会話詳細（`app/conversation/[id].tsx`）- 題や本文をタップすると編集、スクロールでキーボードが閉じて読む表示に戻る、自動保存（iPhoneのメモと同じ仕様）
+4. 新規作成（`app/conversation/new.tsx`）- 題と本文を1枚で入力（題はユーザーが書く）
 5. 検索（`app/search.tsx`）- 全文検索
 
 ## ファイル構造

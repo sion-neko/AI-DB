@@ -1,195 +1,132 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// @ts-ignore
+import { Feather } from '@expo/vector-icons';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../hooks/useTheme';
-import { FolderCard } from '../components/FolderCard';
+import { FolderNameModal } from '../components/FolderNameModal';
 import { Folder } from '../types';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { folders, conversations, addFolder, updateFolder, deleteFolder, isLoading } = useData();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
-  const [folderName, setFolderName] = useState('');
 
-  const getConversationCount = (folderId: string): number => {
-    return conversations.filter((c) => c.folderId === folderId).length;
-  };
+  const countOf = (folderId: string) => conversations.filter((c) => c.folderId === folderId).length;
+  const sortedFolders = [...folders].sort((a, b) => b.createdAt - a.createdAt);
 
-  const handleAddFolder = () => {
-    setEditingFolder(null);
-    setFolderName('');
-    setModalVisible(true);
-  };
-
-  const handleEditFolder = (folder: Folder) => {
-    setEditingFolder(folder);
-    setFolderName(folder.name);
-    setModalVisible(true);
-  };
-
-  const handleSaveFolder = async () => {
-    if (!folderName.trim()) return;
-
-    if (editingFolder) {
-      await updateFolder(editingFolder.id, folderName.trim());
-    } else {
-      await addFolder(folderName.trim());
-    }
+  const closeModal = () => {
     setModalVisible(false);
-    setFolderName('');
     setEditingFolder(null);
   };
 
-  const handleDeleteFolder = (folder: Folder) => {
-    const count = getConversationCount(folder.id);
+  const handleSubmit = async (name: string) => {
+    if (editingFolder) {
+      await updateFolder(editingFolder.id, name);
+    } else {
+      await addFolder(name);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (folder: Folder) => {
+    const count = countOf(folder.id);
     Alert.alert(
       'フォルダを削除',
-      `「${folder.name}」を削除しますか？${count > 0 ? `\n${count}件の会話も削除されます。` : ''}`,
+      `「${folder.name}」を削除しますか？${count > 0 ? `\n${count}件の回答も削除されます。` : ''}`,
       [
         { text: 'キャンセル', style: 'cancel' },
-        {
-          text: '削除',
-          style: 'destructive',
-          onPress: () => deleteFolder(folder.id),
-        },
+        { text: '削除', style: 'destructive', onPress: () => deleteFolder(folder.id) },
       ]
     );
   };
 
-  const handleFolderLongPress = (folder: Folder) => {
+  const handleMenu = (folder: Folder) => {
     Alert.alert(folder.name, '', [
       { text: 'キャンセル', style: 'cancel' },
-      { text: '編集', onPress: () => handleEditFolder(folder) },
       {
-        text: '削除',
-        style: 'destructive',
-        onPress: () => handleDeleteFolder(folder),
+        text: '名前を変更',
+        onPress: () => {
+          setEditingFolder(folder);
+          setModalVisible(true);
+        },
       },
+      { text: '削除', style: 'destructive', onPress: () => handleDelete(folder) },
     ]);
   };
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.loading}>
-          <Text style={{ color: colors.textSecondary }}>読み込み中...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} />;
   }
 
+  const row = (
+    key: string,
+    icon: string,
+    name: string,
+    count: number,
+    isFirst: boolean,
+    onPress: () => void,
+    onLongPress?: () => void
+  ) => (
+    <TouchableOpacity key={key} style={styles.row} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.6}>
+      {!isFirst && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
+      <Feather name={icon} size={21} color={colors.primary} />
+      <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text style={[styles.rowCount, { color: colors.textSecondary }]}>{count}</Text>
+      <Feather name="chevron-right" size={18} color={colors.textSecondary} />
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={[styles.title, { color: colors.text }]}>あいろく</Text>
         <TouchableOpacity
-          style={[styles.searchButton, { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' }]}
+          style={[styles.search, { backgroundColor: colors.fieldBackground }]}
           onPress={() => router.push('/search')}
+          activeOpacity={0.7}
         >
-          <Text style={styles.searchIcon}>🔍</Text>
-          <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
-            会話を検索
-          </Text>
+          <Feather name="search" size={17} color={colors.textSecondary} />
+          <Text style={[styles.searchText, { color: colors.textSecondary }]}>検索</Text>
+        </TouchableOpacity>
+
+        <View style={[styles.group, { backgroundColor: colors.surface }]}>
+          {row('all', 'inbox', 'すべての回答', conversations.length, true, () => router.push('/folder/all'))}
+          {sortedFolders.map((f) =>
+            row(f.id, 'folder', f.name, countOf(f.id), false, () => router.push(`/folder/${f.id}`), () => handleMenu(f))
+          )}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.toolbar, { borderTopColor: colors.border }]}>
+        <TouchableOpacity
+          style={styles.addFolder}
+          onPress={() => {
+            setEditingFolder(null);
+            setModalVisible(true);
+          }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Feather name="folder-plus" size={20} color={colors.primary} />
+          <Text style={[styles.addFolderText, { color: colors.primary }]}>フォルダを追加</Text>
         </TouchableOpacity>
       </View>
 
-      {folders.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            フォルダがありません
-          </Text>
-          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-            右上の＋ボタンでフォルダを作成してください
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={folders.sort((a, b) => b.createdAt - a.createdAt)}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <FolderCard
-              folder={item}
-              conversationCount={getConversationCount(item.id)}
-              onPress={() => router.push(`/folder/${item.id}`)}
-              onLongPress={() => handleFolderLongPress(item)}
-            />
-          )}
-          contentContainerStyle={styles.list}
-        />
-      )}
-
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary }]}
-        onPress={handleAddFolder}
-      >
-        <Text style={[styles.fabIcon, { color: colors.onPrimary }]}>＋</Text>
-      </TouchableOpacity>
-
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {editingFolder ? 'フォルダを編集' : '新しいフォルダ'}
-            </Text>
-            <TextInput
-              style={[
-                styles.modalInput,
-                {
-                  backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7',
-                  color: colors.text,
-                },
-              ]}
-              value={folderName}
-              onChangeText={setFolderName}
-              placeholder="フォルダ名"
-              placeholderTextColor={colors.textSecondary}
-              autoFocus
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.border }]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setFolderName('');
-                  setEditingFolder(null);
-                }}
-              >
-                <Text style={[styles.modalButtonText, { color: colors.text }]}>キャンセル</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  { backgroundColor: colors.primary, opacity: folderName.trim() ? 1 : 0.5 },
-                ]}
-                onPress={handleSaveFolder}
-                disabled={!folderName.trim()}
-              >
-                <Text style={[styles.modalButtonText, { color: colors.onPrimary }]}>
-                  {editingFolder ? '保存' : '作成'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <FolderNameModal
+        visible={modalVisible}
+        title={editingFolder ? 'フォルダ名を変更' : '新しいフォルダ'}
+        submitLabel={editingFolder ? '変更' : '作成'}
+        initialName={editingFolder?.name ?? ''}
+        onCancel={closeModal}
+        onSubmit={handleSubmit}
+      />
     </SafeAreaView>
   );
 }
@@ -198,106 +135,64 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  content: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 24,
+    gap: 14,
   },
-  searchButton: {
+  title: {
+    fontSize: 34,
+    fontWeight: '800',
+    marginTop: 12,
+  },
+  search: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 7,
+    height: 38,
+    paddingHorizontal: 10,
     borderRadius: 10,
   },
-  searchIcon: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  searchPlaceholder: {
+  searchText: {
     fontSize: 16,
   },
-  list: {
-    paddingVertical: 8,
+  group: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  fabIcon: {
-    fontSize: 28,
-    color: '#FFFFFF',
-    fontWeight: '300',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 340,
-    borderRadius: 16,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalInput: {
-    height: 48,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
+    minHeight: 50,
+    paddingHorizontal: 14,
   },
-  modalButton: {
+  separator: {
+    position: 'absolute',
+    top: 0,
+    left: 47,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+  },
+  rowName: {
     flex: 1,
-    height: 44,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 17,
   },
-  modalButtonText: {
+  rowCount: {
+    fontSize: 16,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  addFolder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  addFolderText: {
     fontSize: 16,
     fontWeight: '600',
   },

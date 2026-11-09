@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../hooks/useTheme';
 import { SearchBar } from '../components/SearchBar';
-import { ConversationCard } from '../components/ConversationCard';
+import { AnswerRow } from '../components/AnswerRow';
 import { Conversation } from '../types';
 
 export default function SearchScreen() {
@@ -17,10 +17,7 @@ export default function SearchScreen() {
 
   const results = query.trim() ? searchConversations(query) : [];
 
-  const getFolderName = (folderId: string): string => {
-    const folder = folders.find((f) => f.id === folderId);
-    return folder?.name || '不明';
-  };
+  const getFolderName = (folderId: string) => folders.find((f) => f.id === folderId)?.name;
 
   const handleDeleteConversation = (conversation: Conversation) => {
     Alert.alert('会話を削除', 'この会話を削除しますか？', [
@@ -44,30 +41,28 @@ export default function SearchScreen() {
       {query.trim() === '' ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            検索キーワードを入力してください
+            質問や回答の言葉で探せます
           </Text>
         </View>
       ) : results.length === 0 ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            「{query}」に一致する会話はありません
+            「{query}」を含む回答はありません
           </Text>
         </View>
       ) : (
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View>
-              <Text style={[styles.folderLabel, { color: colors.textSecondary }]}>
-                📁 {getFolderName(item.folderId)}
-              </Text>
-              <ConversationCard
-                conversation={item}
-                onPress={() => router.push(`/conversation/${item.id}`)}
-                onLongPress={() => handleDeleteConversation(item)}
-              />
-            </View>
+          renderItem={({ item, index }) => (
+            <AnswerRow
+              conversation={item}
+              folderName={getFolderName(item.folderId)}
+              isFirst={index === 0}
+              isLast={index === results.length - 1}
+              onPress={() => router.push(`/conversation/${item.id}`)}
+              onLongPress={() => handleDeleteConversation(item)}
+            />
           )}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
@@ -102,10 +97,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingHorizontal: 20,
     paddingVertical: 8,
-  },
-  folderLabel: {
-    fontSize: 12,
-    paddingHorizontal: 20,
-    paddingTop: 8,
   },
 });

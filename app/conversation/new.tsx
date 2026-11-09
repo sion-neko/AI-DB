@@ -1,106 +1,76 @@
-import React, { useState } from 'react';
-import {
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
+import { NoteFields } from '../../components/NoteFields';
 
 export default function NewConversationScreen() {
-  const { folderId } = useLocalSearchParams<{ folderId: string }>();
+  const { folderId } = useLocalSearchParams<{ folderId?: string }>();
   const router = useRouter();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { addConversation } = useData();
 
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const titleRef = useRef<TextInput>(null);
+  const bodyRef = useRef<TextInput>(null);
 
-  const handleSave = async () => {
-    if (!question.trim()) {
-      Alert.alert('エラー', '質問を入力してください');
+  const canSave = !!title.trim() && !!body.trim();
+
+  const handleCancel = () => {
+    if (!title.trim() && !body.trim()) {
+      router.back();
       return;
     }
-    if (!answer.trim()) {
-      Alert.alert('エラー', '回答を入力してください');
-      return;
-    }
-
-    await addConversation(folderId, question.trim(), answer.trim());
-    router.back();
+    Alert.alert('入力内容を破棄しますか？', '', [
+      { text: '続ける', style: 'cancel' },
+      { text: '破棄', style: 'destructive', onPress: () => router.back() },
+    ]);
   };
 
-  const canSave = question.trim() && answer.trim();
+  const handleDone = async () => {
+    if (!canSave) return;
+    const created = await addConversation(folderId ?? '', title.trim(), body.trim());
+    router.replace(`/conversation/${created.id}`);
+  };
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: '新規会話',
           headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()}>
-              <Text style={{ color: colors.primary, fontSize: 16 }}>キャンセル</Text>
+            <TouchableOpacity onPress={handleCancel} hitSlop={8}>
+              <Text style={[styles.navText, { color: colors.primary }]}>キャンセル</Text>
             </TouchableOpacity>
           ),
           headerRight: () => (
-            <TouchableOpacity onPress={handleSave} disabled={!canSave}>
-              <Text
-                style={{
-                  color: colors.primary,
-                  fontSize: 16,
-                  fontWeight: '600',
-                  opacity: canSave ? 1 : 0.5,
-                }}
-              >
-                保存
+            <TouchableOpacity onPress={handleDone} disabled={!canSave} hitSlop={8}>
+              <Text style={[styles.navText, styles.done, { color: colors.primary, opacity: canSave ? 1 : 0.45 }]}>
+                完了
               </Text>
             </TouchableOpacity>
           ),
         }}
       />
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.content}
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={['bottom']}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
-          <ScrollView style={styles.form}>
-            <Text style={[styles.label, { color: colors.text }]}>質問</Text>
-            <TextInput
-              style={[
-                styles.textArea,
-                { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7', color: colors.text },
-              ]}
-              value={question}
-              onChangeText={setQuestion}
-              placeholder="質問を入力"
-              placeholderTextColor={colors.textSecondary}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <Text style={[styles.label, { color: colors.text }]}>回答</Text>
-            <TextInput
-              style={[
-                styles.textArea,
-                styles.answerInput,
-                { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7', color: colors.text },
-              ]}
-              value={answer}
-              onChangeText={setAnswer}
-              placeholder="AIの回答を貼り付け（Markdown対応）"
-              placeholderTextColor={colors.textSecondary}
-              multiline
-              textAlignVertical="top"
-            />
-          </ScrollView>
-        </KeyboardAvoidingView>
+          <NoteFields
+            title={title}
+            body={body}
+            onChangeTitle={setTitle}
+            onChangeBody={setBody}
+            titleRef={titleRef}
+            bodyRef={bodyRef}
+            autoFocusTitle
+          />
+        </ScrollView>
       </SafeAreaView>
     </>
   );
@@ -111,26 +81,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 40,
   },
-  form: {
-    flex: 1,
-    padding: 16,
+  navText: {
+    fontSize: 17,
   },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  textArea: {
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 100,
-  },
-  answerInput: {
-    minHeight: 200,
-    marginBottom: 40,
+  done: {
+    fontWeight: '700',
   },
 });

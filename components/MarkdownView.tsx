@@ -8,7 +8,7 @@ interface MarkdownViewProps {
 }
 
 export const MarkdownView: React.FC<MarkdownViewProps> = ({ content }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const markdownStyles = StyleSheet.create({
     body: {
@@ -42,8 +42,8 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content }) => {
       marginBottom: 12,
     },
     code_inline: {
-      backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA',
-      color: isDark ? '#FF6B6B' : '#D63384',
+      backgroundColor: colors.fieldBackground,
+      color: colors.codeText,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
@@ -51,7 +51,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content }) => {
       fontFamily: 'monospace',
     },
     fence: {
-      backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA',
+      backgroundColor: colors.fieldBackground,
       borderRadius: 8,
       padding: 12,
       marginVertical: 8,
@@ -62,9 +62,9 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content }) => {
       fontFamily: 'monospace',
     },
     blockquote: {
-      backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7',
-      borderLeftColor: colors.primary,
-      borderLeftWidth: 4,
+      backgroundColor: 'transparent',
+      borderLeftColor: colors.border,
+      borderLeftWidth: 3,
       paddingLeft: 12,
       paddingVertical: 8,
       marginVertical: 8,
@@ -90,7 +90,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content }) => {
       borderColor: colors.border,
     },
     th: {
-      backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA',
+      backgroundColor: colors.fieldBackground,
       padding: 8,
     },
     td: {

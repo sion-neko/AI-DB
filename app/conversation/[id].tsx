@@ -1,78 +1,115 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   TextInput,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-  InputAccessoryView,
   Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 // @ts-ignore
 import { Feather } from '@expo/vector-icons';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
 import { MarkdownView } from '../../components/MarkdownView';
+import { NoteFields, noteStyles } from '../../components/NoteFields';
 
 export default function ConversationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const { conversations, updateConversation, deleteConversation } = useData();
-
   const conversation = conversations.find((c) => c.id === id);
 
-  const [editingField, setEditingField] = useState<'question' | 'answer' | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(conversation?.question ?? '');
+  const [body, setBody] = useState(conversation?.answer ?? '');
+  const [bodySelection, setBodySelection] = useState<{ start: number; end: number }>();
+  const [copied, setCopied] = useState(false);
 
-  const handleEditField = (field: 'question' | 'answer') => {
-    if (!conversation) return;
-    setEditValue(field === 'question' ? conversation.question : conversation.answer);
-    setIsTyping(false);
-    setEditingField(field);
+  const titleRef = useRef<TextInput>(null);
+  const bodyRef = useRef<TextInput>(null);
+  const bodyHeight = useRef(1);
+  const deleted = useRef(false);
+
+  // 自動保存はタイマーや画面を閉じた後にも走るので、最新の値を参照する
+  const latest = useRef({ title, body, conversation, updateConversation });
+  latest.current = { title, body, conversation, updateConversation };
+
+  const commit = () => {
+    const current = latest.current;
+    if (!current.conversation || deleted.current) return;
+    const nextTitle = current.title.trim();
+    const nextBody = current.body.trim();
+    if (!nextTitle || !nextBody) return;
+    if (nextTitle === current.conversation.question && nextBody === current.conversation.answer) return;
+    current.updateConversation(current.conversation.id, nextTitle, nextBody);
   };
 
-  const handleCloseModal = () => {
-    setIsTyping(false);
-    setEditingField(null);
+  const finishEditing = () => {
+    commit();
+    const current = latest.current;
+    if (current.conversation) {
+      // 題か本文を空にしたまま閉じたときは元に戻す
+      if (!current.title.trim()) setTitle(current.conversation.question);
+      if (!current.body.trim()) setBody(current.conversation.answer);
+    }
+    setBodySelection(undefined);
+    setEditing(false);
   };
 
-  const handleTapText = () => {
-    setIsTyping(true);
-    setTimeout(() => inputRef.current?.focus(), 50);
+  useEffect(() => {
+    if (!editing) return;
+    const timer = setTimeout(commit, 500);
+    return () => clearTimeout(timer);
+  }, [editing, title, body]);
+
+  useEffect(() => () => commit(), []);
+
+  // データの読み込みが後から終わった場合や、読む表示のときは保存済みの内容に合わせる
+  useEffect(() => {
+    if (editing || !conversation) return;
+    setTitle(conversation.question);
+    setBody(conversation.answer);
+  }, [editing, conversation?.question, conversation?.answer]);
+
+  // スクロールなどでキーボードが閉じたら読む表示に戻る
+  useEffect(() => {
+    if (!editing) return;
+    const subscription = Keyboard.addListener('keyboardDidHide', finishEditing);
+    return () => subscription.remove();
+  }, [editing]);
+
+  const startEditing = (field: 'title' | 'body', selection?: { start: number; end: number }) => {
+    setBodySelection(selection);
+    setEditing(true);
+    setTimeout(() => {
+      (field === 'title' ? titleRef : bodyRef).current?.focus();
+      setTimeout(() => setBodySelection(undefined), 100);
+    }, 50);
   };
 
-  const handleDone = () => {
-    Keyboard.dismiss();
-    setIsTyping(false);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!conversation || !editValue.trim() || !editingField) return;
-    const newQuestion = editingField === 'question' ? editValue.trim() : conversation.question;
-    const newAnswer = editingField === 'answer' ? editValue.trim() : conversation.answer;
-    await updateConversation(conversation.id, newQuestion, newAnswer);
-    setEditingField(null);
+  const handleBodyPress = (locationY: number) => {
+    const ratio = Math.min(Math.max(locationY / bodyHeight.current, 0), 1);
+    const position = Math.round(body.length * ratio);
+    startEditing('body', { start: position, end: position });
   };
 
   const handleDelete = () => {
     if (!conversation) return;
-    Alert.alert('会話を削除', 'この会話を削除しますか？', [
+    Alert.alert('回答を削除', 'この回答を削除しますか？', [
       { text: 'キャンセル', style: 'cancel' },
       {
         text: '削除',
         style: 'destructive',
         onPress: async () => {
+          deleted.current = true;
           await deleteConversation(conversation.id);
           router.back();
         },
@@ -80,116 +117,90 @@ export default function ConversationDetailScreen() {
     ]);
   };
 
+  const handleCopy = async () => {
+    if (!conversation) return;
+    await Clipboard.setStringAsync(conversation.answer);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   if (!conversation) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>会話が見つかりません</Text>
-      </SafeAreaView>
-    );
+    return <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} />;
   }
+
+  const date = new Date(conversation.updatedAt);
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: '会話詳細',
-          headerRight: () => (
-            <TouchableOpacity onPress={handleDelete} style={styles.headerButton}>
-              <Feather name="trash-2" size={20} color={colors.danger} />
-            </TouchableOpacity>
-          ),
+          headerRight: () =>
+            editing ? (
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  finishEditing();
+                }}
+                hitSlop={8}
+              >
+                <Text style={[styles.done, { color: colors.primary }]}>完了</Text>
+              </TouchableOpacity>
+            ) : null,
         }}
       />
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <View style={[styles.labelContainer, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.label, { color: colors.onPrimary }]}>質問</Text>
-              <TouchableOpacity onPress={() => handleEditField('question')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="edit-2" size={14} color={colors.onPrimary} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={[styles.questionText, { color: colors.text }]}>
-                {conversation.question}
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={['bottom']}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+        >
+          {editing ? (
+            <NoteFields
+              title={title}
+              body={body}
+              onChangeTitle={setTitle}
+              onChangeBody={setBody}
+              titleRef={titleRef}
+              bodyRef={bodyRef}
+              bodySelection={bodySelection}
+            />
+          ) : (
+            <>
+              <Pressable onPress={() => startEditing('title')} testID="title">
+                <Text style={[noteStyles.title, { color: colors.text }]}>{conversation.question}</Text>
+              </Pressable>
+              <Text style={[styles.date, { color: colors.textSecondary }]}>
+                {date.getMonth() + 1}月{date.getDate()}日
               </Text>
-            </View>
-          </View>
-
-          <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <View style={[styles.labelContainer, { backgroundColor: colors.accent }]}>
-              <Text style={[styles.label, { color: colors.onAccent }]}>回答</Text>
-              <TouchableOpacity onPress={() => handleEditField('answer')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="edit-2" size={14} color={colors.onAccent} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.markdownContainer}>
-              <MarkdownView content={conversation.answer} />
-            </View>
-          </View>
+              <View style={[noteStyles.rule, { backgroundColor: colors.border }]} />
+              <Pressable
+                onPress={(e) => handleBodyPress(e.nativeEvent.locationY)}
+                onLayout={(e) => {
+                  bodyHeight.current = e.nativeEvent.layout.height || 1;
+                }}
+                testID="body"
+              >
+                <MarkdownView content={conversation.answer} />
+              </Pressable>
+            </>
+          )}
         </ScrollView>
 
-        <Modal visible={editingField !== null} animationType="slide">
-          <View style={[styles.modalContainer, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={styles.modalContent}
-            >
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={handleCloseModal}>
-                  <Text style={{ color: colors.primary, fontSize: 16 }}>キャンセル</Text>
-                </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>
-                  {editingField === 'question' ? '質問を編集' : '回答を編集'}
-                </Text>
-                <TouchableOpacity onPress={handleSaveEdit} disabled={!editValue.trim()}>
-                  <Text
-                    style={{
-                      color: colors.primary,
-                      fontSize: 16,
-                      fontWeight: '600',
-                      opacity: editValue.trim() ? 1 : 0.5,
-                    }}
-                  >
-                    保存
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {isTyping ? (
-                <TextInput
-                  ref={inputRef}
-                  style={[styles.editInput, { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7', color: colors.text }]}
-                  value={editValue}
-                  onChangeText={setEditValue}
-                  placeholder={editingField === 'question' ? '質問を入力' : 'AIの回答を貼り付け'}
-                  placeholderTextColor={colors.textSecondary}
-                  multiline
-                  textAlignVertical="top"
-                  inputAccessoryViewID="editAccessory"
-                />
-              ) : (
-                <ScrollView style={styles.editInput} contentContainerStyle={{ padding: 0 }}>
-                  <TouchableOpacity onPress={handleTapText} activeOpacity={1}>
-                    <Text style={{ color: editValue ? colors.text : colors.textSecondary, fontSize: 16, lineHeight: 24 }}>
-                      {editValue || (editingField === 'question' ? '質問を入力' : 'AIの回答を貼り付け')}
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              )}
-            </KeyboardAvoidingView>
-          </View>
-        </Modal>
-      </SafeAreaView>
-      {Platform.OS === 'ios' && (
-        <InputAccessoryView nativeID="editAccessory">
-          <View style={[styles.accessoryBar, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7', borderTopColor: colors.border }]}>
-            <TouchableOpacity onPress={handleDone} style={styles.accessoryButton}>
-              <Text style={{ color: colors.primary, fontSize: 16 }}>完了</Text>
+        {!editing && (
+          <View style={[styles.toolbar, { borderTopColor: colors.border }]}>
+            <TouchableOpacity onPress={handleDelete} hitSlop={10} accessibilityLabel="この回答を削除">
+              <Feather name="trash-2" size={21} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.copy} onPress={handleCopy} hitSlop={10}>
+              <Feather name={copied ? 'check' : 'copy'} size={20} color={colors.primary} />
+              <Text style={[styles.copyText, { color: colors.primary }]}>
+                {copied ? 'コピーしました' : '回答をコピー'}
+              </Text>
             </TouchableOpacity>
           </View>
-        </InputAccessoryView>
-      )}
+        )}
+      </SafeAreaView>
     </>
   );
 }
@@ -199,96 +210,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 40,
   },
-  section: {
-    borderRadius: 12,
-    marginBottom: 16,
-    overflow: 'hidden',
+  date: {
+    fontSize: 13,
+    marginTop: 8,
   },
-  labelContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  label: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  textContainer: {
-    padding: 16,
-  },
-  questionText: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  markdownContainer: {
-    padding: 16,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  headerButton: {
-    paddingVertical: 4,
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#C6C6C8',
-  },
-  modalTitle: {
+  done: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  modalForm: {
-    flex: 1,
-    padding: 16,
-  },
-  inputLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  textArea: {
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 100,
-    marginBottom: 20,
-  },
-  answerInput: {
-    minHeight: 200,
-  },
-  editInput: {
-    flex: 1,
-    margin: 16,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    textAlignVertical: 'top',
-  },
-  accessoryBar: {
+  toolbar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  accessoryButton: {
-    paddingHorizontal: 8,
+  copy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  copyText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

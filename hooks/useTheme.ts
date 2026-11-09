@@ -7,16 +7,16 @@ export const useTheme = () => {
   return {
     isDark,
     colors: {
-      background: isDark ? '#000000' : '#F2F2F7',
-      surface: isDark ? '#1C1C1E' : '#FFFFFF',
-      text: isDark ? '#FFFFFF' : '#000000',
-      textSecondary: isDark ? '#8E8E93' : '#6C6C70',
-      border: isDark ? '#38383A' : '#C6C6C8',
-      primary: isDark ? '#8AE3B9' : '#197A57',
-      onPrimary: isDark ? '#0B2B20' : '#FFFFFF',
-      accent: '#FFD45E',
-      onAccent: '#24243F',
-      danger: '#FF3B30',
+      background: isDark ? '#0E0D0E' : '#F2F0F1',
+      surface: isDark ? '#1F1C1E' : '#FFFFFF',
+      fieldBackground: isDark ? '#2B272A' : '#E8E4E6',
+      text: isDark ? '#F6F2F3' : '#1C191E',
+      textSecondary: isDark ? '#AFA5AB' : '#6F656C',
+      border: isDark ? '#332E31' : '#E6E1E3',
+      primary: isDark ? '#F79AAE' : '#BE2F57',
+      onPrimary: isDark ? '#3A1220' : '#FFFFFF',
+      codeText: isDark ? '#F79AAE' : '#BE2F57',
+      danger: isDark ? '#FF7A70' : '#D92D20',
     },
   };
 };
