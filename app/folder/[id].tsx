@@ -9,7 +9,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { AnswerRow } from '../../components/AnswerRow';
 import { FolderNameModal } from '../../components/FolderNameModal';
 import { Conversation } from '../../types';
-import { easeListChange, SCREEN_SETTLE_MS } from '../../utils/motion';
+import { easeListChange, MODAL_SETTLE_MS, SCREEN_SETTLE_MS } from '../../utils/motion';
 
 export default function FolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -75,7 +75,7 @@ export default function FolderScreen() {
     Alert.alert(folder.name, '', [
       { text: 'キャンセル', style: 'cancel' },
       // メニューが閉じきってから入力欄を出す（閉じる途中で重ねると出ないことがある）
-      { text: '名前を変更', onPress: () => setTimeout(() => setRenaming(true), 250) },
+      { text: '名前を変更', onPress: () => setTimeout(() => setRenaming(true), MODAL_SETTLE_MS) },
       { text: '削除', style: 'destructive', onPress: handleDeleteFolder },
     ]);
   };
@@ -141,7 +141,8 @@ export default function FolderScreen() {
           onCancel={() => setRenaming(false)}
           onSubmit={(name) => {
             setRenaming(false);
-            updateFolder(folder.id, name);
+            // 入力欄が閉じきってから題を書き換える
+            setTimeout(() => updateFolder(folder.id, name), MODAL_SETTLE_MS);
           }}
         />
       )}

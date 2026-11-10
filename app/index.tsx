@@ -9,7 +9,7 @@ import { useTheme } from '../hooks/useTheme';
 import { FolderNameModal } from '../components/FolderNameModal';
 import { SwipeToDelete } from '../components/SwipeToDelete';
 import { Folder } from '../types';
-import { easeListChange } from '../utils/motion';
+import { easeListChange, MODAL_SETTLE_MS } from '../utils/motion';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -21,10 +21,13 @@ export default function HomeScreen() {
   const countOf = (folderId: string) => conversations.filter((c) => c.folderId === folderId).length;
   const sortedFolders = [...folders].sort((a, b) => b.createdAt - a.createdAt);
 
-  const handleSubmit = async (name: string) => {
+  const handleSubmit = (name: string) => {
     setModalVisible(false);
-    easeListChange();
-    await addFolder(name);
+    // 入力欄が閉じきってから、一覧に行を足す
+    setTimeout(() => {
+      easeListChange();
+      addFolder(name);
+    }, MODAL_SETTLE_MS);
   };
 
   const handleDelete = (folder: Folder, close?: () => void) => {

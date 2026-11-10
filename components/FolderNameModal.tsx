@@ -5,9 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 
@@ -29,6 +29,7 @@ export const FolderNameModal: React.FC<FolderNameModalProps> = ({
   onSubmit,
 }) => {
   const { colors } = useTheme();
+  const { height } = useWindowDimensions();
   const [name, setName] = useState(initialName);
 
   useEffect(() => {
@@ -37,33 +38,55 @@ export const FolderNameModal: React.FC<FolderNameModalProps> = ({
 
   const trimmed = name.trim();
 
+  // 先にキーボードを下げてから閉じる。開いたまま閉じると、閉じた後にキーボードが一瞬戻ってちらつく
+  const cancel = () => {
+    Keyboard.dismiss();
+    onCancel();
+  };
+  const submit = () => {
+    Keyboard.dismiss();
+    onSubmit(trimmed);
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlay}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={cancel}>
+      {/* キーボードに合わせて位置を動かさない。出入りのたびにカードが上下して落ち着かないので、
+          最初からキーボードに隠れない高さに固定する */}
+      <View style={[styles.overlay, { paddingTop: Math.round(height * 0.2) }]}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.fieldBackground, color: colors.text }]}
-            value={name}
-            onChangeText={setName}
-            placeholder="フォルダ名"
-            placeholderTextColor={colors.textSecondary}
-            autoFocus
-          />
+          {/* 入力欄に元からある薄い案内文字は、日本語だとカーソルより下にずれて表示される。
+              そのため案内文字は自前で重ね、枠の上下中央に置く */}
+          <View style={[styles.field, { backgroundColor: colors.fieldBackground }]}>
+            {name === '' && (
+              <Text style={[styles.placeholder, { color: colors.textSecondary }]} pointerEvents="none">
+                フォルダ名
+              </Text>
+            )}
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              value={name}
+              onChangeText={setName}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={() => trimmed && submit()}
+              accessibilityLabel="フォルダ名"
+            />
+          </View>
           <View style={styles.buttons}>
-            <TouchableOpacity style={[styles.button, { backgroundColor: colors.fieldBackground }]} onPress={onCancel}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: colors.fieldBackground }]} onPress={cancel}>
               <Text style={[styles.buttonText, { color: colors.text }]}>キャンセル</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.primary, opacity: trimmed ? 1 : 0.5 }]}
-              onPress={() => onSubmit(trimmed)}
+              onPress={submit}
               disabled={!trimmed}
             >
               <Text style={[styles.buttonText, { color: colors.onPrimary }]}>{submitLabel}</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };
@@ -72,9 +95,9 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
   },
   content: {
     width: '100%',
@@ -88,12 +111,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  input: {
+  field: {
     height: 48,
     borderRadius: 10,
-    paddingHorizontal: 16,
-    fontSize: 16,
     marginBottom: 20,
+    justifyContent: 'center',
+  },
+  placeholder: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    fontSize: 17,
+  },
+  input: {
+    height: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 0,
+    fontSize: 17,
   },
   buttons: {
     flexDirection: 'row',
