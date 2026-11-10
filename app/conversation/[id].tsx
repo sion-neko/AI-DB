@@ -18,6 +18,7 @@ import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
 import { MarkdownView } from '../../components/MarkdownView';
 import { NoteFields, noteStyles, TextInputHandle } from '../../components/NoteFields';
+import { FadeIn } from '../../components/FadeIn';
 import { generateId } from '../../utils/storage';
 import { easeListChange, SCREEN_SETTLE_MS } from '../../utils/motion';
 
@@ -51,6 +52,9 @@ export default function ConversationDetailScreen() {
   const bodyContentRef = useRef<React.ComponentRef<typeof View>>(null);
   const bodyHeight = useRef(1);
   const deleted = useRef(false);
+  // 読む表示と編集を一度でも切り替えたら、以降の本文はふわっと出す
+  const switched = useRef(false);
+  const openedAt = useRef(Date.now());
 
   // 自動保存はタイマーや画面を閉じた後にも走るので、最新の値を参照する
   const latest = useRef({ title, body, conversation, addConversation, updateConversation });
@@ -93,6 +97,7 @@ export default function ConversationDetailScreen() {
       }
     }
     setBodySelection(undefined);
+    switched.current = true;
     setEditing(false);
   };
 
@@ -114,6 +119,7 @@ export default function ConversationDetailScreen() {
 
   const startEditing = (field: 'title' | 'body', selection?: { start: number; end: number }) => {
     setBodySelection(selection);
+    switched.current = true;
     setEditing(true);
     setTimeout(() => {
       (field === 'title' ? titleRef : bodyRef).current?.focus();
@@ -152,7 +158,7 @@ export default function ConversationDetailScreen() {
 
   const handleCopy = async () => {
     if (!conversation) return;
-    await Clipboard.setStringAsync(conversation.answer);
+    await Clipboard.setStringAsync(latest.current.body.trim() || conversation.answer);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -197,6 +203,8 @@ export default function ConversationDetailScreen() {
               bodyRef={bodyRef}
               bodySelection={bodySelection}
               autoFocusTitle={autoFocusTitle.current}
+              dateLabel={formatDate(conversation?.updatedAt ?? openedAt.current)}
+              fadeBody={switched.current}
             />
           ) : (
             <>
@@ -205,10 +213,11 @@ export default function ConversationDetailScreen() {
                   {conversation.question || '題'}
                 </Text>
               </Pressable>
-              <Text style={[styles.date, { color: colors.textSecondary }]}>
+              <Text style={[noteStyles.date, { color: colors.textSecondary }]}>
                 {formatDate(conversation.updatedAt)}
               </Text>
               <View style={[noteStyles.rule, { backgroundColor: colors.border }]} />
+              <FadeIn enabled={switched.current} style={styles.bodyArea}>
               <Pressable style={styles.bodyArea} onPress={(e) => handleBodyPress(e.nativeEvent.pageY)} testID="body">
                 <View
                   ref={bodyContentRef}
@@ -220,12 +229,16 @@ export default function ConversationDetailScreen() {
                   <MarkdownView content={conversation.answer} />
                 </View>
               </Pressable>
+              </FadeIn>
             </>
           )}
         </ScrollView>
 
-        {!editing && (
-          <View style={[styles.toolbar, { borderTopColor: colors.border }]}>
+        {/* 編集中も置いたままにする（キーボードの下に隠れる）。出し入れすると本文の高さが変わって画面が跳ねる */}
+        <View
+          style={[styles.toolbar, { borderTopColor: colors.border, opacity: conversation ? 1 : 0.35 }]}
+          pointerEvents={conversation ? 'auto' : 'none'}
+        >
             <TouchableOpacity onPress={handleDelete} hitSlop={10} accessibilityLabel="この回答を削除">
               <Feather name="trash-2" size={21} color={colors.primary} />
             </TouchableOpacity>
@@ -235,8 +248,7 @@ export default function ConversationDetailScreen() {
                 {copied ? 'コピーしました' : '回答をコピー'}
               </Text>
             </TouchableOpacity>
-          </View>
-        )}
+        </View>
       </SafeAreaView>
     </>
   );
@@ -255,10 +267,6 @@ const styles = StyleSheet.create({
   bodyArea: {
     flex: 1,
     minHeight: 240,
-  },
-  date: {
-    fontSize: 13,
-    marginTop: 8,
   },
   toolbar: {
     flexDirection: 'row',

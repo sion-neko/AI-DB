@@ -1,11 +1,27 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DataProvider } from '../contexts/DataContext';
+import { DataProvider, useData } from '../contexts/DataContext';
 import { useTheme } from '../hooks/useTheme';
+
+// 保存データを読み終えるまで起動画面を出したままにし、読めたらふわっと消す。
+// 先に消すと、空の画面が一瞬見えてから中身が出る
+SplashScreen.preventAutoHideAsync().catch(() => {});
+try {
+  SplashScreen.setOptions({ fade: true, duration: 350 });
+} catch {
+  // Expo Go では設定できないことがある。そのときは既定の消え方のままでよい
+}
 
 function RootLayoutNav() {
   const { colors, isDark } = useTheme();
+  const { isLoading } = useData();
+
+  useEffect(() => {
+    if (!isLoading) SplashScreen.hideAsync().catch(() => {});
+  }, [isLoading]);
 
   return (
     <>
