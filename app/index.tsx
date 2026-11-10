@@ -10,6 +10,7 @@ import { FolderNameModal } from '../components/FolderNameModal';
 import { SwipeToDelete } from '../components/SwipeToDelete';
 import { Folder } from '../types';
 import { easeListChange, MODAL_SETTLE_MS } from '../utils/motion';
+import { LIST_RADIUS, ROW_HEIGHT } from '../utils/layout';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -71,7 +72,7 @@ export default function HomeScreen() {
         {name}
       </Text>
       <Text style={[styles.rowCount, { color: colors.textSecondary }]}>{count}</Text>
-      <Feather name="chevron-right" size={18} color={colors.textSecondary} />
+      <Feather name="chevron-right" size={17} color={colors.textSecondary} style={styles.chevron} />
     </Pressable>
   );
 
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 34,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 12,
   },
   search: {
@@ -153,29 +154,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   group: {
-    borderRadius: 12,
+    borderRadius: LIST_RADIUS,
     overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    minHeight: 50,
-    paddingHorizontal: 14,
+    minHeight: ROW_HEIGHT,
+    paddingHorizontal: 16,
   },
   separator: {
     position: 'absolute',
     top: 0,
-    left: 47,
-    right: 0,
+    left: 49,
+    right: 16,
     height: StyleSheet.hairlineWidth,
   },
   rowName: {
     flex: 1,
     fontSize: 17,
   },
+  chevron: {
+    opacity: 0.55,
+    marginLeft: -6,
+  },
   rowCount: {
-    fontSize: 16,
+    fontSize: 17,
   },
   toolbar: {
     flexDirection: 'row',

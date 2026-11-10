@@ -1,8 +1,12 @@
 import React from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
+// @ts-ignore
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { SwipeToDelete } from './SwipeToDelete';
 import { Conversation } from '../types';
+import { LIST_RADIUS } from '../utils/layout';
+import { previewOf } from '../utils/preview';
 
 interface AnswerRowProps {
   conversation: Conversation;
@@ -37,17 +41,24 @@ export const AnswerRow: React.FC<AnswerRowProps> = ({
           onPress={onPress}
         >
           {!isFirst && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
-          <View style={styles.text}>
-            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-              {conversation.question || '題なし'}
-            </Text>
+          {/* 上から: 題 / 本文の書き出し（2行まで） / 日付（全回答・検索のときはフォルダ名も） */}
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+            {conversation.question || '題なし'}
+          </Text>
+          <Text style={[styles.preview, { color: colors.textSecondary }]} numberOfLines={2}>
+            {previewOf(conversation.answer) || '本文なし'}
+          </Text>
+          <View style={styles.meta}>
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatDate(conversation.updatedAt)}</Text>
             {folderName ? (
-              <Text style={[styles.folder, { color: colors.textSecondary }]} numberOfLines={1}>
-                {folderName}
-              </Text>
+              <>
+                <Feather name="folder" size={13} color={colors.textSecondary} style={styles.folderIcon} />
+                <Text style={[styles.metaText, styles.folder, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {folderName}
+                </Text>
+              </>
             ) : null}
           </View>
-          <Text style={[styles.date, { color: colors.textSecondary }]}>{formatDate(conversation.updatedAt)}</Text>
         </Pressable>
       </SwipeToDelete>
     </View>
@@ -60,40 +71,46 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   first: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderTopLeftRadius: LIST_RADIUS,
+    borderTopRightRadius: LIST_RADIUS,
   },
   last: {
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    borderBottomLeftRadius: LIST_RADIUS,
+    borderBottomRightRadius: LIST_RADIUS,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    minHeight: 50,
+    gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 15,
   },
   separator: {
     position: 'absolute',
     top: 0,
     left: 16,
-    right: 0,
+    right: 16,
     height: StyleSheet.hairlineWidth,
   },
-  text: {
-    flex: 1,
-    gap: 2,
-  },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  preview: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  metaText: {
+    fontSize: 13,
+  },
+  folderIcon: {
+    marginLeft: 12,
+    marginRight: 4,
   },
   folder: {
-    fontSize: 12,
-  },
-  date: {
-    fontSize: 13,
+    flex: 1,
   },
 });
