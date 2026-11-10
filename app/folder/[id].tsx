@@ -99,7 +99,7 @@ export default function FolderScreen() {
           <View style={styles.empty}>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>回答がありません</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              右下のボタンから、残したいAIの回答を保存できます
+              右下のボタンから保存できます
             </Text>
           </View>
         ) : (
