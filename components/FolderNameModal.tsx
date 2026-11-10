@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,25 +16,31 @@ interface FolderNameModalProps {
   title: string;
   submitLabel: string;
   initialName?: string;
+  // 開いたときに文字を全部選んだ状態にする（名前の変更で、そのまま打ち直せるように）
+  selectAll?: boolean;
   onCancel: () => void;
   onSubmit: (name: string) => void;
 }
 
-export const FolderNameModal: React.FC<FolderNameModalProps> = ({
-  visible,
+// 開くたびに中身を作り直す。入力欄は最初から今の名前を持った状態で現れるので、
+// 開いた後に文字が差し替わって全選択が外れる、ということが起きない
+export const FolderNameModal: React.FC<FolderNameModalProps> = (props) => (
+  <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onCancel}>
+    <Card {...props} />
+  </Modal>
+);
+
+const Card: React.FC<FolderNameModalProps> = ({
   title,
   submitLabel,
   initialName = '',
+  selectAll = false,
   onCancel,
   onSubmit,
 }) => {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
   const [name, setName] = useState(initialName);
-
-  useEffect(() => {
-    if (visible) setName(initialName);
-  }, [visible, initialName]);
 
   const trimmed = name.trim();
 
@@ -49,7 +55,7 @@ export const FolderNameModal: React.FC<FolderNameModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={cancel}>
+    <>
       {/* キーボードに合わせて位置を動かさない。出入りのたびにカードが上下して落ち着かないので、
           最初からキーボードに隠れない高さに固定する */}
       <View style={[styles.overlay, { paddingTop: Math.round(height * 0.2) }]}>
@@ -68,6 +74,7 @@ export const FolderNameModal: React.FC<FolderNameModalProps> = ({
               value={name}
               onChangeText={setName}
               autoFocus
+              selectTextOnFocus={selectAll}
               returnKeyType="done"
               onSubmitEditing={() => trimmed && submit()}
               accessibilityLabel="フォルダ名"
@@ -87,7 +94,7 @@ export const FolderNameModal: React.FC<FolderNameModalProps> = ({
           </View>
         </View>
       </View>
-    </Modal>
+    </>
   );
 };
 

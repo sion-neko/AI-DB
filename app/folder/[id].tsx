@@ -8,6 +8,7 @@ import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
 import { AnswerRow } from '../../components/AnswerRow';
 import { FolderNameModal } from '../../components/FolderNameModal';
+import { PopoverMenu } from '../../components/PopoverMenu';
 import { Conversation } from '../../types';
 import { easeListChange, MODAL_SETTLE_MS, SCREEN_SETTLE_MS } from '../../utils/motion';
 
@@ -17,6 +18,7 @@ export default function FolderScreen() {
   const { colors } = useTheme();
   const { folders, conversations, updateFolder, deleteFolder, deleteConversation } = useData();
   const [renaming, setRenaming] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isAll = id === 'all';
   const folder = folders.find((f) => f.id === id);
@@ -70,16 +72,6 @@ export default function FolderScreen() {
     );
   };
 
-  const handleMenu = () => {
-    if (!folder) return;
-    Alert.alert(folder.name, '', [
-      { text: 'キャンセル', style: 'cancel' },
-      // メニューが閉じきってから入力欄を出す（閉じる途中で重ねると出ないことがある）
-      { text: '名前を変更', onPress: () => setTimeout(() => setRenaming(true), MODAL_SETTLE_MS) },
-      { text: '削除', style: 'destructive', onPress: handleDeleteFolder },
-    ]);
-  };
-
   if (!isAll && !folder) {
     return <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} />;
   }
@@ -91,7 +83,12 @@ export default function FolderScreen() {
           title: isAll ? 'すべての回答' : folder?.name,
           headerRight: () =>
             folder ? (
-              <TouchableOpacity onPress={handleMenu} accessibilityLabel="フォルダの操作" hitSlop={8}>
+              <TouchableOpacity
+                style={[styles.menuButton, menuOpen && { backgroundColor: colors.fieldBackground }]}
+                onPress={() => setMenuOpen((open) => !open)}
+                accessibilityLabel="フォルダの操作"
+                hitSlop={8}
+              >
                 <Feather name="more-horizontal" size={22} color={colors.primary} />
               </TouchableOpacity>
             ) : null,
@@ -131,6 +128,16 @@ export default function FolderScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        {folder && (
+          <PopoverMenu
+            visible={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            items={[
+              { label: '名前を変更', icon: 'edit-2', onPress: () => setRenaming(true) },
+              { label: 'フォルダを削除', icon: 'trash-2', destructive: true, onPress: handleDeleteFolder },
+            ]}
+          />
+        )}
       </SafeAreaView>
       {folder && (
         <FolderNameModal
@@ -138,6 +145,7 @@ export default function FolderScreen() {
           title="フォルダ名を変更"
           submitLabel="変更"
           initialName={folder.name}
+          selectAll
           onCancel={() => setRenaming(false)}
           onSubmit={(name) => {
             setRenaming(false);
@@ -153,6 +161,13 @@ export default function FolderScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  menuButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   toolbar: {
     flexDirection: 'row',
