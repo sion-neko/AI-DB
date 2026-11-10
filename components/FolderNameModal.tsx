@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,18 @@ const Card: React.FC<FolderNameModalProps> = ({
   const { height } = useWindowDimensions();
   const [name, setName] = useState(initialName);
 
+  // 全選択は、入力欄の「フォーカス時に全選択」の設定だけだと iPhone で効かないことがある。
+  // 開いた直後は選択範囲を「先頭から末尾まで」に指定しておき、打ち始めるか少し経ったら手を離す
+  // （離さないと、カーソルを動かしたくても全選択に戻されてしまう）
+  const [selection, setSelection] = useState(
+    selectAll && initialName ? { start: 0, end: initialName.length } : undefined
+  );
+  useEffect(() => {
+    if (!selection) return;
+    const timer = setTimeout(() => setSelection(undefined), 700);
+    return () => clearTimeout(timer);
+  }, []);
+
   const trimmed = name.trim();
 
   // 先にキーボードを下げてから閉じる。開いたまま閉じると、閉じた後にキーボードが一瞬戻ってちらつく
@@ -72,7 +84,11 @@ const Card: React.FC<FolderNameModalProps> = ({
             <TextInput
               style={[styles.input, { color: colors.text }]}
               value={name}
-              onChangeText={setName}
+              onChangeText={(text) => {
+                setSelection(undefined);
+                setName(text);
+              }}
+              selection={selection}
               autoFocus
               selectTextOnFocus={selectAll}
               returnKeyType="done"
