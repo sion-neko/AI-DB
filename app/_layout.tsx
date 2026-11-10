@@ -32,6 +32,8 @@ function RootLayoutNav() {
           headerTintColor: colors.primary,
           headerTitleStyle: { color: colors.text },
           headerShadowVisible: false,
+          // 戻るボタンは「<」だけにする（前の画面の名前は出さない）
+          headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: colors.background },
         }}
       >
