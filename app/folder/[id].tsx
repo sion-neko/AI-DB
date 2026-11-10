@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { AnswerRow } from '../../components/AnswerRow';
 import { FolderNameModal } from '../../components/FolderNameModal';
 import { Conversation } from '../../types';
+import { easeListChange, SCREEN_SETTLE_MS } from '../../utils/motion';
 
 export default function FolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,13 +27,23 @@ export default function FolderScreen() {
   const folderNameOf = (folderId: string) => folders.find((f) => f.id === folderId)?.name;
 
   const handleNew = () => {
-    router.push({ pathname: '/conversation/new', params: folder ? { folderId: folder.id } : {} });
+    router.push({
+      pathname: '/conversation/[id]',
+      params: folder ? { id: 'new', folderId: folder.id } : { id: 'new' },
+    });
   };
 
   const handleDeleteAnswer = (conversation: Conversation, close: () => void) => {
     Alert.alert('この回答を削除しますか？', '', [
       { text: 'キャンセル', style: 'cancel', onPress: close },
-      { text: '削除', style: 'destructive', onPress: () => deleteConversation(conversation.id) },
+      {
+        text: '削除',
+        style: 'destructive',
+        onPress: () => {
+          easeListChange();
+          deleteConversation(conversation.id);
+        },
+      },
     ]);
   };
 
@@ -46,9 +57,13 @@ export default function FolderScreen() {
         {
           text: '削除',
           style: 'destructive',
-          onPress: async () => {
-            await deleteFolder(folder.id);
+          // 先に消すとこの画面が一瞬空になるので、ホームに戻りきってから一覧から消す
+          onPress: () => {
             router.back();
+            setTimeout(() => {
+              easeListChange();
+              deleteFolder(folder.id);
+            }, SCREEN_SETTLE_MS);
           },
         },
       ]
@@ -59,7 +74,8 @@ export default function FolderScreen() {
     if (!folder) return;
     Alert.alert(folder.name, '', [
       { text: 'キャンセル', style: 'cancel' },
-      { text: '名前を変更', onPress: () => setRenaming(true) },
+      // メニューが閉じきってから入力欄を出す（閉じる途中で重ねると出ないことがある）
+      { text: '名前を変更', onPress: () => setTimeout(() => setRenaming(true), 250) },
       { text: '削除', style: 'destructive', onPress: handleDeleteFolder },
     ]);
   };
@@ -123,9 +139,9 @@ export default function FolderScreen() {
           submitLabel="変更"
           initialName={folder.name}
           onCancel={() => setRenaming(false)}
-          onSubmit={async (name) => {
-            await updateFolder(folder.id, name);
+          onSubmit={(name) => {
             setRenaming(false);
+            updateFolder(folder.id, name);
           }}
         />
       )}

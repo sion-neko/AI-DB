@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Pressable, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
@@ -9,30 +9,22 @@ import { useTheme } from '../hooks/useTheme';
 import { FolderNameModal } from '../components/FolderNameModal';
 import { SwipeToDelete } from '../components/SwipeToDelete';
 import { Folder } from '../types';
+import { easeListChange } from '../utils/motion';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { folders, conversations, addFolder, updateFolder, deleteFolder, isLoading } = useData();
+  const { folders, conversations, addFolder, deleteFolder, isLoading } = useData();
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
 
   const countOf = (folderId: string) => conversations.filter((c) => c.folderId === folderId).length;
   const sortedFolders = [...folders].sort((a, b) => b.createdAt - a.createdAt);
 
-  const closeModal = () => {
-    setModalVisible(false);
-    setEditingFolder(null);
-  };
-
   const handleSubmit = async (name: string) => {
-    if (editingFolder) {
-      await updateFolder(editingFolder.id, name);
-    } else {
-      await addFolder(name);
-    }
-    closeModal();
+    setModalVisible(false);
+    easeListChange();
+    await addFolder(name);
   };
 
   const handleDelete = (folder: Folder, close?: () => void) => {
@@ -42,23 +34,16 @@ export default function HomeScreen() {
       `「${folder.name}」を削除しますか？${count > 0 ? `\n${count}件の回答も削除されます。` : ''}`,
       [
         { text: 'キャンセル', style: 'cancel', onPress: close },
-        { text: '削除', style: 'destructive', onPress: () => deleteFolder(folder.id) },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: () => {
+            easeListChange();
+            deleteFolder(folder.id);
+          },
+        },
       ]
     );
-  };
-
-  const handleMenu = (folder: Folder) => {
-    Alert.alert(folder.name, '', [
-      { text: 'キャンセル', style: 'cancel' },
-      {
-        text: '名前を変更',
-        onPress: () => {
-          setEditingFolder(folder);
-          setModalVisible(true);
-        },
-      },
-      { text: '削除', style: 'destructive', onPress: () => handleDelete(folder) },
-    ]);
   };
 
   if (isLoading) {
@@ -70,14 +55,12 @@ export default function HomeScreen() {
     name: string,
     count: number,
     isFirst: boolean,
-    onPress: () => void,
-    onLongPress?: () => void
+    onPress: () => void
   ) => (
-    <TouchableOpacity
-      style={[styles.row, { backgroundColor: colors.surface }]}
+    // 半透明にすると裏の削除ボタンが透けるので、押した感じは背景色で出す
+    <Pressable
+      style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.pressed : colors.surface }]}
       onPress={onPress}
-      onLongPress={onLongPress}
-      activeOpacity={0.6}
     >
       {!isFirst && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
       <Feather name={icon} size={21} color={colors.primary} />
@@ -86,7 +69,7 @@ export default function HomeScreen() {
       </Text>
       <Text style={[styles.rowCount, { color: colors.textSecondary }]}>{count}</Text>
       <Feather name="chevron-right" size={18} color={colors.textSecondary} />
-    </TouchableOpacity>
+    </Pressable>
   );
 
   return (
@@ -106,7 +89,7 @@ export default function HomeScreen() {
           {row('inbox', 'すべての回答', conversations.length, true, () => router.push('/folder/all'))}
           {sortedFolders.map((f) => (
             <SwipeToDelete key={f.id} onDelete={(close) => handleDelete(f, close)}>
-              {row('folder', f.name, countOf(f.id), false, () => router.push(`/folder/${f.id}`), () => handleMenu(f))}
+              {row('folder', f.name, countOf(f.id), false, () => router.push(`/folder/${f.id}`))}
             </SwipeToDelete>
           ))}
         </View>
@@ -115,17 +98,14 @@ export default function HomeScreen() {
       <View style={[styles.toolbar, { borderTopColor: colors.border }]}>
         <TouchableOpacity
           style={styles.addFolder}
-          onPress={() => {
-            setEditingFolder(null);
-            setModalVisible(true);
-          }}
+          onPress={() => setModalVisible(true)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Feather name="folder-plus" size={20} color={colors.primary} />
           <Text style={[styles.addFolderText, { color: colors.primary }]}>フォルダを追加</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => router.push('/conversation/new')}
+          onPress={() => router.push({ pathname: '/conversation/[id]', params: { id: 'new' } })}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityLabel="回答を保存"
         >
@@ -135,10 +115,9 @@ export default function HomeScreen() {
 
       <FolderNameModal
         visible={modalVisible}
-        title={editingFolder ? 'フォルダ名を変更' : '新しいフォルダ'}
-        submitLabel={editingFolder ? '変更' : '作成'}
-        initialName={editingFolder?.name ?? ''}
-        onCancel={closeModal}
+        title="新しいフォルダ"
+        submitLabel="作成"
+        onCancel={() => setModalVisible(false)}
         onSubmit={handleSubmit}
       />
     </SafeAreaView>

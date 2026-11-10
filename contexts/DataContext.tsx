@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Folder, Conversation, AppData } from '../types';
 import { loadData, saveData, generateId } from '../utils/storage';
 
@@ -9,7 +9,7 @@ interface DataContextType {
   addFolder: (name: string) => Promise<Folder>;
   updateFolder: (id: string, name: string) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
-  addConversation: (folderId: string, question: string, answer: string) => Promise<Conversation>;
+  addConversation: (folderId: string, question: string, answer: string, id?: string) => Promise<Conversation>;
   updateConversation: (id: string, question: string, answer: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   getConversationsByFolder: (folderId: string) => Conversation[];
@@ -23,17 +23,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 続けて呼ばれても前の変更を取りこぼさないよう、最新の内容は ref に持つ
+  const store = useRef<AppData>({ folders: [], conversations: [] });
+
+  const apply = async (next: AppData) => {
+    store.current = next;
+    setFolders(next.folders);
+    setConversations(next.conversations);
+    await saveData(next);
+  };
+
   useEffect(() => {
     loadData().then((data) => {
+      store.current = data;
       setFolders(data.folders);
       setConversations(data.conversations);
       setIsLoading(false);
     });
   }, []);
-
-  const persistData = async (newFolders: Folder[], newConversations: Conversation[]) => {
-    await saveData({ folders: newFolders, conversations: newConversations });
-  };
 
   const addFolder = async (name: string): Promise<Folder> => {
     const newFolder: Folder = {
@@ -41,43 +48,41 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       name,
       createdAt: Date.now(),
     };
-    const newFolders = [...folders, newFolder];
-    setFolders(newFolders);
-    await persistData(newFolders, conversations);
+    const { folders, conversations } = store.current;
+    await apply({ folders: [...folders, newFolder], conversations });
     return newFolder;
   };
 
   const updateFolder = async (id: string, name: string): Promise<void> => {
-    const newFolders = folders.map((f) => (f.id === id ? { ...f, name } : f));
-    setFolders(newFolders);
-    await persistData(newFolders, conversations);
+    const { folders, conversations } = store.current;
+    await apply({ folders: folders.map((f) => (f.id === id ? { ...f, name } : f)), conversations });
   };
 
   const deleteFolder = async (id: string): Promise<void> => {
-    const newFolders = folders.filter((f) => f.id !== id);
-    const newConversations = conversations.filter((c) => c.folderId !== id);
-    setFolders(newFolders);
-    setConversations(newConversations);
-    await persistData(newFolders, newConversations);
+    const { folders, conversations } = store.current;
+    await apply({
+      folders: folders.filter((f) => f.id !== id),
+      conversations: conversations.filter((c) => c.folderId !== id),
+    });
   };
 
   const addConversation = async (
     folderId: string,
     question: string,
-    answer: string
+    answer: string,
+    id?: string
   ): Promise<Conversation> => {
     const now = Date.now();
     const newConversation: Conversation = {
-      id: generateId(),
+      id: id ?? generateId(),
       folderId,
       question,
       answer,
       createdAt: now,
       updatedAt: now,
     };
-    const newConversations = [...conversations, newConversation];
-    setConversations(newConversations);
-    await persistData(folders, newConversations);
+    const { folders, conversations } = store.current;
+    await apply({ folders, conversations: [...conversations, newConversation] });
     return newConversation;
   };
 
@@ -86,17 +91,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     question: string,
     answer: string
   ): Promise<void> => {
-    const newConversations = conversations.map((c) =>
-      c.id === id ? { ...c, question, answer, updatedAt: Date.now() } : c
-    );
-    setConversations(newConversations);
-    await persistData(folders, newConversations);
+    const { folders, conversations } = store.current;
+    await apply({
+      folders,
+      conversations: conversations.map((c) =>
+        c.id === id ? { ...c, question, answer, updatedAt: Date.now() } : c
+      ),
+    });
   };
 
   const deleteConversation = async (id: string): Promise<void> => {
-    const newConversations = conversations.filter((c) => c.id !== id);
-    setConversations(newConversations);
-    await persistData(folders, newConversations);
+    const { folders, conversations } = store.current;
+    await apply({ folders, conversations: conversations.filter((c) => c.id !== id) });
   };
 
   const getConversationsByFolder = (folderId: string): Conversation[] => {

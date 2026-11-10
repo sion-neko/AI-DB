@@ -7,6 +7,7 @@ import { useTheme } from '../hooks/useTheme';
 import { SearchBar } from '../components/SearchBar';
 import { AnswerRow } from '../components/AnswerRow';
 import { Conversation } from '../types';
+import { easeListChange } from '../utils/motion';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -25,7 +26,10 @@ export default function SearchScreen() {
       {
         text: '削除',
         style: 'destructive',
-        onPress: () => deleteConversation(conversation.id),
+        onPress: () => {
+          easeListChange();
+          deleteConversation(conversation.id);
+        },
       },
     ]);
   };

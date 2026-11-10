@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { SwipeToDelete } from './SwipeToDelete';
 import { Conversation } from '../types';
@@ -31,10 +31,10 @@ export const AnswerRow: React.FC<AnswerRowProps> = ({
   return (
     <View style={[styles.clip, isFirst && styles.first, isLast && styles.last]}>
       <SwipeToDelete onDelete={onDelete}>
-        <TouchableOpacity
-          style={[styles.row, { backgroundColor: colors.surface }]}
+        {/* 半透明にすると裏の削除ボタンが透けるので、押した感じは背景色で出す */}
+        <Pressable
+          style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.pressed : colors.surface }]}
           onPress={onPress}
-          activeOpacity={0.6}
         >
           {!isFirst && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
           <View style={styles.text}>
@@ -48,7 +48,7 @@ export const AnswerRow: React.FC<AnswerRowProps> = ({
             ) : null}
           </View>
           <Text style={[styles.date, { color: colors.textSecondary }]}>{formatDate(conversation.updatedAt)}</Text>
-        </TouchableOpacity>
+        </Pressable>
       </SwipeToDelete>
     </View>
   );

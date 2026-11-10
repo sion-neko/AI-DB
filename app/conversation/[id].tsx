@@ -18,15 +18,29 @@ import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
 import { MarkdownView } from '../../components/MarkdownView';
 import { NoteFields, noteStyles, TextInputHandle } from '../../components/NoteFields';
+import { generateId } from '../../utils/storage';
+import { easeListChange, SCREEN_SETTLE_MS } from '../../utils/motion';
+
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+};
 
 export default function ConversationDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
-  const { conversations, updateConversation, deleteConversation } = useData();
-  const conversation = conversations.find((c) => c.id === id);
+  const { conversations, addConversation, updateConversation, deleteConversation } = useData();
 
-  const [editing, setEditing] = useState(false);
+  // 新規作成もこの画面で行う。書き終えてチェックを押しても画面を切り替えず、そのまま読む表示になる
+  const isNew = id === 'new';
+  const newId = useRef(generateId());
+  const created = useRef(false);
+  const autoFocusTitle = useRef(isNew);
+  const conversationId = isNew ? newId.current : id;
+  const conversation = conversations.find((c) => c.id === conversationId);
+
+  const [editing, setEditing] = useState(isNew);
   const [title, setTitle] = useState(conversation?.question ?? '');
   const [body, setBody] = useState(conversation?.answer ?? '');
   const [bodySelection, setBodySelection] = useState<{ start: number; end: number }>();
@@ -39,21 +53,37 @@ export default function ConversationDetailScreen() {
   const deleted = useRef(false);
 
   // 自動保存はタイマーや画面を閉じた後にも走るので、最新の値を参照する
-  const latest = useRef({ title, body, conversation, updateConversation });
-  latest.current = { title, body, conversation, updateConversation };
+  const latest = useRef({ title, body, conversation, addConversation, updateConversation });
+  latest.current = { title, body, conversation, addConversation, updateConversation };
+  const lastSaved = useRef({ title: conversation?.question, body: conversation?.answer });
 
   const commit = () => {
     const current = latest.current;
-    if (!current.conversation || deleted.current) return;
+    if (deleted.current) return;
     const nextTitle = current.title.trim();
     const nextBody = current.body.trim();
     if (!nextTitle && !nextBody) return;
-    if (nextTitle === current.conversation.question && nextBody === current.conversation.answer) return;
-    current.updateConversation(current.conversation.id, nextTitle, nextBody);
+    if (isNew && !created.current) {
+      // 何か書いた時点で初めて作る。空のままなら作らない
+      created.current = true;
+      lastSaved.current = { title: nextTitle, body: nextBody };
+      current.addConversation(folderId ?? '', nextTitle, nextBody, conversationId);
+      return;
+    }
+    if (!isNew && !current.conversation) return;
+    if (nextTitle === lastSaved.current.title && nextBody === lastSaved.current.body) return;
+    lastSaved.current = { title: nextTitle, body: nextBody };
+    current.updateConversation(conversationId, nextTitle, nextBody);
   };
 
   const finishEditing = () => {
     commit();
+    autoFocusTitle.current = false;
+    if (isNew && !created.current) {
+      // 何も書かずに完了したら、作らずに戻る
+      router.back();
+      return;
+    }
     const current = latest.current;
     if (current.conversation) {
       // 題も本文も空にしたまま閉じたときは元に戻す
@@ -79,6 +109,7 @@ export default function ConversationDetailScreen() {
     if (editing || !conversation) return;
     setTitle(conversation.question);
     setBody(conversation.answer);
+    lastSaved.current = { title: conversation.question, body: conversation.answer };
   }, [editing, conversation?.question, conversation?.answer]);
 
   const startEditing = (field: 'title' | 'body', selection?: { start: number; end: number }) => {
@@ -106,10 +137,14 @@ export default function ConversationDetailScreen() {
       {
         text: '削除',
         style: 'destructive',
-        onPress: async () => {
+        // 先に消すとこの画面が一瞬空になるので、一覧に戻りきってから消す
+        onPress: () => {
           deleted.current = true;
-          await deleteConversation(conversation.id);
           router.back();
+          setTimeout(() => {
+            easeListChange();
+            deleteConversation(conversation.id);
+          }, SCREEN_SETTLE_MS);
         },
       },
     ]);
@@ -122,11 +157,9 @@ export default function ConversationDetailScreen() {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  if (!conversation) {
+  if (!conversation && !(isNew && editing)) {
     return <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} />;
   }
-
-  const date = new Date(conversation.updatedAt);
 
   return (
     <>
@@ -154,7 +187,7 @@ export default function ConversationDetailScreen() {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
         >
-          {editing ? (
+          {editing || !conversation ? (
             <NoteFields
               title={title}
               body={body}
@@ -163,6 +196,7 @@ export default function ConversationDetailScreen() {
               titleRef={titleRef}
               bodyRef={bodyRef}
               bodySelection={bodySelection}
+              autoFocusTitle={autoFocusTitle.current}
             />
           ) : (
             <>
@@ -172,7 +206,7 @@ export default function ConversationDetailScreen() {
                 </Text>
               </Pressable>
               <Text style={[styles.date, { color: colors.textSecondary }]}>
-                {date.getMonth() + 1}月{date.getDate()}日
+                {formatDate(conversation.updatedAt)}
               </Text>
               <View style={[noteStyles.rule, { backgroundColor: colors.border }]} />
               <Pressable style={styles.bodyArea} onPress={(e) => handleBodyPress(e.nativeEvent.pageY)} testID="body">

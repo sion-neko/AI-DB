@@ -9,6 +9,7 @@ export const useTheme = () => {
     colors: {
       background: isDark ? '#0E0D0E' : '#F2F0F1',
       surface: isDark ? '#1F1C1E' : '#FFFFFF',
+      pressed: isDark ? '#2B272A' : '#ECE8EA',
       fieldBackground: isDark ? '#2B272A' : '#E8E4E6',
       text: isDark ? '#F6F2F3' : '#1C191E',
       textSecondary: isDark ? '#AFA5AB' : '#6F656C',

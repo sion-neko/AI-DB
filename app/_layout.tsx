@@ -25,10 +25,6 @@ function RootLayoutNav() {
           name="conversation/[id]"
           options={{ title: '', headerStyle: { backgroundColor: colors.surface } }}
         />
-        <Stack.Screen
-          name="conversation/new"
-          options={{ title: '', headerStyle: { backgroundColor: colors.surface } }}
-        />
         <Stack.Screen name="search" options={{ title: '検索' }} />
       </Stack>
     </>
