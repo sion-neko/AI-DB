@@ -39,6 +39,12 @@ types/index.ts          # 型定義（Folder, Conversation）
 utils/storage.ts        # AsyncStorage操作
 ```
 
+## 画面確認用の一時パッケージ
+画面確認（スクショ）のために、Web版用の `react-native-web` `@expo/metro-runtime` `react-dom` を `npm install --no-save` で入れている。
+- 作業のたびに `npm ci` で消さない。入れたままでよい
+- `npm install` や `expo install` で消えることがあるので、消えていたら入れ直す
+- **リリース（EASビルド）の前に `npm ci` を実行して消す**
+
 ## 起動方法
 ```bash
 npx expo start

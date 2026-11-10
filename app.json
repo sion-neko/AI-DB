@@ -6,19 +6,15 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
-    "splash": {
-      "image": "./assets/airoku_splash.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#F79AAE"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aiconversationsaver",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDevelopmentRegion": "ja",
-        "CFBundleLocalizations": ["ja"]
+        "CFBundleLocalizations": [
+          "ja"
+        ]
       }
     },
     "scheme": "ai-conversation-saver",
@@ -27,7 +23,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F79AAE"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -35,7 +30,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-asset"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/airoku_splash.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#F79AAE"
+        }
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "router": {},

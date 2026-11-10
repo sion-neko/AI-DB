@@ -66,7 +66,7 @@ export default function HomeScreen() {
   }
 
   const row = (
-    icon: string,
+    icon: 'inbox' | 'folder',
     name: string,
     count: number,
     isFirst: boolean,

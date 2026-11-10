@@ -2,13 +2,15 @@ import React, { RefObject, useRef } from 'react';
 import { TextInput, View, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 
+export type TextInputHandle = React.ComponentRef<typeof TextInput>;
+
 interface NoteFieldsProps {
   title: string;
   body: string;
   onChangeTitle: (text: string) => void;
   onChangeBody: (text: string) => void;
-  titleRef: RefObject<TextInput | null>;
-  bodyRef: RefObject<TextInput | null>;
+  titleRef: RefObject<TextInputHandle | null>;
+  bodyRef: RefObject<TextInputHandle | null>;
   autoFocusTitle?: boolean;
   bodySelection?: { start: number; end: number };
 }

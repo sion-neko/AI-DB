@@ -1,6 +1,6 @@
 import React, { ReactNode, useRef } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
-import Swipeable from 'react-native-gesture-handler/Swipeable';
+import Swipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 // @ts-ignore
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
@@ -13,7 +13,7 @@ interface SwipeToDeleteProps {
 
 export const SwipeToDelete: React.FC<SwipeToDeleteProps> = ({ children, onDelete }) => {
   const { isDark } = useTheme();
-  const ref = useRef<React.ElementRef<typeof Swipeable>>(null);
+  const ref = useRef<SwipeableMethods>(null);
 
   return (
     <Swipeable

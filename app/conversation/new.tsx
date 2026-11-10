@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, TouchableOpacity, StyleSheet, TextInput, Keyboard } from 'react-native';
+import { ScrollView, TouchableOpacity, StyleSheet, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Feather } from '@expo/vector-icons';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
-import { NoteFields } from '../../components/NoteFields';
+import { NoteFields, TextInputHandle } from '../../components/NoteFields';
 
 export default function NewConversationScreen() {
   const { folderId } = useLocalSearchParams<{ folderId?: string }>();
@@ -16,8 +16,8 @@ export default function NewConversationScreen() {
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const titleRef = useRef<TextInput>(null);
-  const bodyRef = useRef<TextInput>(null);
+  const titleRef = useRef<TextInputHandle>(null);
+  const bodyRef = useRef<TextInputHandle>(null);
   const saved = useRef(false);
 
   // 戻るだけでも保存する。何も書いていなければ作らない

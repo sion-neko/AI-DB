@@ -7,7 +7,6 @@ import {
   Pressable,
   StyleSheet,
   Alert,
-  TextInput,
   Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -18,7 +17,7 @@ import { Feather } from '@expo/vector-icons';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../hooks/useTheme';
 import { MarkdownView } from '../../components/MarkdownView';
-import { NoteFields, noteStyles } from '../../components/NoteFields';
+import { NoteFields, noteStyles, TextInputHandle } from '../../components/NoteFields';
 
 export default function ConversationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,9 +32,9 @@ export default function ConversationDetailScreen() {
   const [bodySelection, setBodySelection] = useState<{ start: number; end: number }>();
   const [copied, setCopied] = useState(false);
 
-  const titleRef = useRef<TextInput>(null);
-  const bodyRef = useRef<TextInput>(null);
-  const bodyContentRef = useRef<View>(null);
+  const titleRef = useRef<TextInputHandle>(null);
+  const bodyRef = useRef<TextInputHandle>(null);
+  const bodyContentRef = useRef<React.ComponentRef<typeof View>>(null);
   const bodyHeight = useRef(1);
   const deleted = useRef(false);
 
