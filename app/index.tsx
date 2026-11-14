@@ -79,7 +79,8 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>あいろく</Text>
+        {/* 大きな題はアプリ名ではなく、この画面にあるものの名前にする（iPhoneのメモと同じ） */}
+        <Text style={[styles.title, { color: colors.text }]}>フォルダ</Text>
         <TouchableOpacity
           style={[styles.search, { backgroundColor: colors.fieldBackground }]}
           onPress={() => router.push('/search')}
